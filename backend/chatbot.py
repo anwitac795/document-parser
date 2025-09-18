@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import google.generativeai as genai
+from google.cloud import vision
 import PyPDF2
 import docx
 from PIL import Image
@@ -9,10 +10,9 @@ import io
 import json
 import os
 from typing import Optional, List, Dict
-import tempfile
 import base64
 import asyncio
-import time  # Add this import for synchronous sleep
+import time
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -31,60 +31,141 @@ app.add_middleware(
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# In-memory storage for temporary chats (in production, use Redis or similar)
+# Initialize Google Vision Client (only if credentials are available)
+vision_client = None
+try:
+    credentials_path = os.getenv("GOOGLE_CLOUD_CREDENTIALS_PATH")
+    if credentials_path and os.path.exists(credentials_path):
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
+        vision_client = vision.ImageAnnotatorClient()
+except Exception as e:
+    print(f"Warning: Google Vision API not available: {str(e)}")
+
+# In-memory storage for temporary chats
 temporary_chats = {}
 
 def extract_text_from_pdf(file_content: bytes) -> str:
-    """Extract text from PDF file"""
+    """Extract text from PDF file using in-memory processing"""
     try:
         pdf_file = io.BytesIO(file_content)
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         text = ""
         for page in pdf_reader.pages:
-            text += page.extract_text() + "\n"
-        return text.strip()
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+        return text.strip() if text.strip() else "No text found in PDF"
     except Exception as e:
         return f"Error extracting PDF text: {str(e)}"
 
 def extract_text_from_docx(file_content: bytes) -> str:
-    """Extract text from DOCX file"""
+    """Extract text from DOCX file using in-memory processing"""
     try:
-        with tempfile.NamedTemporaryFile() as tmp_file:
-            tmp_file.write(file_content)
-            tmp_file.flush()
-            doc = docx.Document(tmp_file.name)
-            text = ""
-            for paragraph in doc.paragraphs:
+        # Use io.BytesIO to create an in-memory file-like object
+        docx_file = io.BytesIO(file_content)
+        doc = docx.Document(docx_file)
+        text = ""
+        for paragraph in doc.paragraphs:
+            if paragraph.text:
                 text += paragraph.text + "\n"
-        return text.strip()
+        return text.strip() if text.strip() else "No text found in document"
     except Exception as e:
         return f"Error extracting DOCX text: {str(e)}"
 
-def process_image(file_content: bytes, file_type: str) -> str:
-    """Process image and extract information using Gemini Vision"""
+def extract_text_with_vision_ocr(file_content: bytes) -> str:
+    """Extract text from image using Google Vision OCR"""
+    if not vision_client:
+        return "Google Vision API not available"
+    
     try:
+        # Create Vision API image object directly from bytes
+        image = vision.Image(content=file_content)
+        
+        # Perform text detection
+        response = vision_client.text_detection(image=image)
+        
+        if response.error.message:
+            return f"Vision API error: {response.error.message}"
+        
+        texts = response.text_annotations
+        if texts and len(texts) > 0:
+            # The first text annotation contains all detected text
+            extracted_text = texts[0].description
+            return extracted_text.strip() if extracted_text else "No text found in image"
+        else:
+            return "No text found in image"
+            
+    except Exception as e:
+        return f"Error extracting text with OCR: {str(e)}"
+
+def process_image_with_gemini(file_content: bytes) -> str:
+    """Process image with Gemini Vision API using in-memory approach"""
+    try:
+        # Convert bytes to PIL Image for validation and format handling
         image = Image.open(io.BytesIO(file_content))
         
-        # Create temporary file for Gemini upload
-        with tempfile.NamedTemporaryFile(suffix=f".{file_type.split('/')[-1]}", delete=False) as tmp_file:
-            image.save(tmp_file.name, format=image.format or 'PNG')
-            tmp_file.flush()
-            
-            # Upload to Gemini
-            uploaded_file = genai.upload_file(tmp_file.name)
-            response = model.generate_content([
-                "Analyze this image and describe what you see in detail. If there's any text in the image, please transcribe it as well. Be comprehensive but concise.",
-                uploaded_file
-            ])
-            
-            # Clean up temporary file
-            os.unlink(tmp_file.name)
-            
-            # Clean up uploaded file from Gemini
+        # Convert to RGB if necessary (for consistency)
+        if image.mode in ('RGBA', 'P'):
+            image = image.convert('RGB')
+        
+        # Save to in-memory buffer in a standard format
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format='JPEG', quality=90)
+        img_buffer.seek(0)
+        
+        # Upload to Gemini from memory
+        uploaded_file = genai.upload_file(img_buffer, mime_type="image/jpeg")
+        
+        # Generate response
+        prompt = """Analyze this image comprehensively and provide:
+1. A detailed description of what you see
+2. Any text that appears in the image (transcribe it exactly)
+3. The context and purpose of the image
+4. Any notable visual elements, colors, or composition details
+
+Please be thorough and accurate in your analysis."""
+
+        response = model.generate_content([prompt, uploaded_file])
+        
+        # Clean up the uploaded file
+        try:
             genai.delete_file(uploaded_file.name)
-            
-            return response.text
-            
+        except:
+            pass  # Ignore cleanup errors
+        
+        return response.text if response.text else "No analysis available"
+        
+    except Exception as e:
+        return f"Error processing image with Gemini: {str(e)}"
+
+def process_image(file_content: bytes, file_type: str) -> str:
+    """Process image with both OCR and Gemini Vision analysis (fully in-memory)"""
+    try:
+        # Validate image
+        try:
+            test_image = Image.open(io.BytesIO(file_content))
+            test_image.verify()
+        except Exception as e:
+            return f"Invalid image file: {str(e)}"
+        
+        results = []
+        
+        # 1. Try OCR first if Vision API is available
+        if vision_client:
+            ocr_text = extract_text_with_vision_ocr(file_content)
+            if ocr_text and not ocr_text.startswith("Error") and ocr_text != "No text found in image":
+                results.append(f"TEXT EXTRACTED FROM IMAGE:\n{ocr_text}")
+        
+        # 2. Get Gemini visual analysis
+        visual_analysis = process_image_with_gemini(file_content)
+        if visual_analysis and not visual_analysis.startswith("Error"):
+            results.append(f"VISUAL ANALYSIS:\n{visual_analysis}")
+        
+        if not results:
+            return "Unable to process image - no analysis methods succeeded"
+        
+        return "\n\n".join(results)
+        
     except Exception as e:
         return f"Error processing image: {str(e)}"
 
@@ -96,7 +177,8 @@ def build_context_prompt(context: List[Dict], current_message: str) -> str:
     context_str = "Previous conversation context:\n"
     for msg in context[-5:]:  # Only use last 5 messages for context
         role = "User" if msg["role"] == "user" else "Assistant"
-        context_str += f"{role}: {msg['content']}\n"
+        content = msg.get('content', '')[:200]  # Limit context length
+        context_str += f"{role}: {content}\n"
     
     context_str += f"\nCurrent message: {current_message}"
     context_str += "\n\nPlease respond to the current message while being aware of the conversation context."
@@ -114,11 +196,11 @@ def get_ai_response(prompt: str, max_retries: int = 3) -> str:
                     temperature=0.7,
                 )
             )
-            return response.text
+            return response.text if response.text else "No response generated"
         except Exception as e:
             if attempt == max_retries - 1:
                 raise e
-            time.sleep(1)  # Use time.sleep instead of asyncio.sleep for synchronous function
+            time.sleep(2 ** attempt)  # Exponential backoff
 
 @app.get("/")
 async def root():
@@ -132,24 +214,27 @@ async def health_check():
         # Test Gemini connection
         test_response = model.generate_content("Hello")
         gemini_status = "connected" if test_response else "disconnected"
-    except:
-        gemini_status = "disconnected"
+    except Exception as e:
+        gemini_status = f"disconnected: {str(e)}"
+    
+    vision_status = "connected" if vision_client else "not configured"
     
     return {
         "status": "healthy",
         "gemini_ai": gemini_status,
+        "vision_api": vision_status,
         "timestamp": datetime.now().isoformat()
     }
 
 @app.post("/chat")
 async def chat_endpoint(
-    message: str = Form(...),
-    temporaryMode: str = Form(...),
+    message: str = Form(""),
+    temporaryMode: str = Form("false"),
     userId: str = Form(...),
     context: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None)
 ):
-    """Main chat endpoint"""
+    """Main chat endpoint with improved error handling"""
     try:
         is_temporary = temporaryMode.lower() == "true"
         file_content = ""
@@ -163,33 +248,36 @@ async def chat_endpoint(
         
         # Process uploaded file if present
         if file:
-            # Check file size (10MB limit)
+            # Read file content into memory
             file_bytes = await file.read()
+            
+            # Check file size (10MB limit)
             if len(file_bytes) > 10 * 1024 * 1024:
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": "File size exceeds 10MB limit"}
-                )
+                raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+            
+            # Validate file content
+            if len(file_bytes) == 0:
+                raise HTTPException(status_code=400, detail="Empty file uploaded")
             
             # Process different file types
-            if file.content_type == "application/pdf":
+            content_type = file.content_type.lower() if file.content_type else ""
+            
+            if content_type == "application/pdf" or file.filename.lower().endswith('.pdf'):
                 file_content = extract_text_from_pdf(file_bytes)
-            elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            elif (content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or 
+                  file.filename.lower().endswith('.docx')):
                 file_content = extract_text_from_docx(file_bytes)
-            elif file.content_type.startswith("image/"):
-                file_content = process_image(file_bytes, file.content_type)
+            elif content_type.startswith("image/") or file.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')):
+                file_content = process_image(file_bytes, content_type)
             else:
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": f"Unsupported file type: {file.content_type}"}
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Unsupported file type: {content_type}. Supported: PDF, DOCX, Images"
                 )
             
             # Check if file processing failed
             if file_content.startswith("Error"):
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": file_content}
-                )
+                raise HTTPException(status_code=400, detail=file_content)
         
         # Build the complete message
         full_message = message.strip() if message else ""
@@ -203,7 +291,8 @@ async def chat_endpoint(
         if not is_temporary and context:
             try:
                 context_data = json.loads(context)
-                full_message = build_context_prompt(context_data, full_message)
+                if isinstance(context_data, list):
+                    full_message = build_context_prompt(context_data, full_message)
             except json.JSONDecodeError:
                 # If context parsing fails, continue without context
                 pass
@@ -224,7 +313,7 @@ async def chat_endpoint(
             if len(temporary_chats[userId]) > 1:
                 temp_context = [
                     {"role": msg["role"], "content": msg["content"]} 
-                    for msg in temporary_chats[userId][-5:]  # Last 5 messages
+                    for msg in temporary_chats[userId][-6:]  # Last 6 messages
                 ]
                 full_message = build_context_prompt(temp_context[:-1], full_message)
         
@@ -232,10 +321,7 @@ async def chat_endpoint(
         try:
             ai_response = get_ai_response(full_message)
         except Exception as e:
-            return JSONResponse(
-                status_code=500,
-                content={"error": f"AI service error: {str(e)}"}
-            )
+            raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
         
         # Store AI response in temporary chat if needed
         if is_temporary and userId in temporary_chats:
@@ -255,24 +341,27 @@ async def chat_endpoint(
                 "response": ai_response,
                 "timestamp": datetime.now().isoformat(),
                 "temporary_mode": is_temporary,
-                "file_processed": bool(file_content)
+                "file_processed": bool(file_content),
+                "file_type": file.content_type if file else None
             }
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": f"Internal server error: {str(e)}"}
-        )
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.delete("/chat/temporary/{user_id}")
 async def clear_temporary_chat(user_id: str):
     """Clear temporary chat history for a user"""
     if user_id in temporary_chats:
+        message_count = len(temporary_chats[user_id])
         del temporary_chats[user_id]
-        return {"message": "Temporary chat cleared", "user_id": user_id}
+        return {
+            "message": "Temporary chat cleared", 
+            "user_id": user_id, 
+            "cleared_messages": message_count
+        }
     else:
         return {"message": "No temporary chat found", "user_id": user_id}
 
@@ -290,11 +379,10 @@ async def get_temporary_chat(user_id: str):
 
 @app.post("/chat/generate-title")
 async def generate_chat_title(
-    messages: List[Dict] = None,
     user_id: str = Form(...),
     first_message: str = Form(...)
 ):
-    """Generate a title for a chat session based on the first few messages"""
+    """Generate a title for a chat session based on the first message"""
     try:
         if not first_message.strip():
             return {"title": "New Chat"}
@@ -305,7 +393,7 @@ async def generate_chat_title(
         
         "{first_message[:200]}"
         
-        Return only the title, nothing else.
+        Return only the title, nothing else. Make it concise and relevant.
         """
         
         title = get_ai_response(title_prompt)
@@ -313,18 +401,38 @@ async def generate_chat_title(
         # Clean and limit the title
         title = title.strip().replace('"', '').replace("'", "")
         if len(title) > 50:
-            title = title[:50] + "..."
+            title = title[:47] + "..."
         
         return {"title": title or "New Chat"}
         
     except Exception as e:
         return {"title": "New Chat"}
 
+@app.get("/stats")
+async def get_stats():
+    """Get API usage statistics"""
+    total_temp_chats = len(temporary_chats)
+    total_messages = sum(len(chat) for chat in temporary_chats.values())
+    
+    return {
+        "temporary_chats": total_temp_chats,
+        "total_messages": total_messages,
+        "vision_api_available": vision_client is not None,
+        "uptime": datetime.now().isoformat()
+    }
+
 if __name__ == "__main__":
     import uvicorn
     
     # Check for required environment variables
     if not os.getenv("GOOGLE_API_KEY"):
-        print("Warning: GOOGLE_API_KEY environment variable not set!")
+        print("ERROR: GOOGLE_API_KEY environment variable not set!")
+        exit(1)
+    
+    if not os.getenv("GOOGLE_CLOUD_CREDENTIALS_PATH"):
+        print("Warning: GOOGLE_CLOUD_CREDENTIALS_PATH environment variable not set - Vision OCR will be disabled")
+    
+    print("Starting AI ChatBot API server...")
+    print(f"Vision API available: {vision_client is not None}")
     
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
