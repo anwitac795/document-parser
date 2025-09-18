@@ -17,7 +17,7 @@ export default function Navbar({ darkMode, setDarkMode }) {
   }, []);
 
   const navItems = [
-    { name: 'Document Parser', icon: FileText, href: '/parser' },
+    { name: 'Document Parser', icon: FileText, href: '/document-analyser' },
     { name: 'Govt Schemes', icon: Building2, href: '/schemes' },
     { name: 'About', icon: Info, href: '/about' },
     { name: 'Login', icon: Users, href: '/login' },

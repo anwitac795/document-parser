@@ -17,7 +17,7 @@ import {
   Loader2,
   Upload
 } from 'lucide-react';
-import { signOut } from 'firebase/auth';
+import { signOut, getAuth } from 'firebase/auth';
 import { auth } from '../../../firebase-config'; // Import the initialized auth instance
 import Navbar from '@/components/navbar'; // Adjust path as needed
 
