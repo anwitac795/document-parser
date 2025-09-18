@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, React } from 'react';
+import Lottie from "lottie-react";
 import { 
   FileText, 
   Building2, 
@@ -48,25 +49,26 @@ export default function Homepage() {
       icon: FileText,
       title: 'Document Parser',
       description: 'AI-powered document analysis that extracts key information from legal documents, contracts, and forms with precision and speed.',
-      benefits: ['OCR Technology', 'Multi-format Support', 'Data Extraction']
+      //color: '#AF85B2',
+      //benefits: ['OCR Technology', 'Multi-format Support', 'Data Extraction']
     },
     {
       icon: Building2,
       title: 'Government Schemes',
       description: 'Comprehensive database of government schemes and programs. Find eligibility criteria and application processes tailored to your profile.',
-      benefits: ['Eligibility Checker', 'Application Guidance', 'Real-time Updates']
+      //benefits: ['Eligibility Checker', 'Application Guidance', 'Real-time Updates']
     },
     {
       icon: Info,
       title: 'Legal Insights',
       description: 'Get detailed explanations of legal terms, requirements, and procedures. Simplifying complex legal language for everyone.',
-      benefits: ['Plain English', 'Expert Analysis', 'Case Studies']
+      //benefits: ['Plain English', 'Expert Analysis', 'Case Studies']
     },
     {
       icon: Users,
       title: 'Secure Access',
       description: 'Enterprise-grade security for your sensitive legal documents. Role-based access and encrypted storage for peace of mind.',
-      benefits: ['End-to-end Encryption', 'Access Control', 'Audit Trails']
+      //benefits: ['End-to-end Encryption', 'Access Control', 'Audit Trails']
     }
   ];
 
@@ -77,6 +79,41 @@ export default function Homepage() {
     { number: '24/7', label: 'Support Available' }
   ];
 
+
+  const petals = [
+    {
+      title: "Understanding Documents",
+      points: [
+        "Upload any legal document",
+        "Explain processes clearly",
+        "Identify jargons/terms",
+        "Show T&C links",
+        "Highlight form fields",
+      ],
+    },
+    {
+      title: "Interactive & Visual",
+      points: [
+        "Graphical content explanation",
+        "Show process flow",
+        "Relevant YouTube videos",
+        "Multilingual support",
+        "Voice-over conversation",
+      ],
+    },
+    {
+      title: "AI-Powered Guidance",
+      points: [
+        "Personalized legal advice",
+        "Context-aware suggestions",
+        "Follow document type",
+        "Step-by-step guidance",
+        "Quick summaries",
+      ],
+    },
+  ];
+
+
   return (
     <div className={`min-h-screen transition-all duration-500 ${
       darkMode 
@@ -84,132 +121,158 @@ export default function Homepage() {
         : 'bg-white text-[#0B2E33]'
     }`}>
       <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
-
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-16 overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23${darkMode ? 'B8E3E9' : '4F7C82'}' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }} />
+            {/* Hero Section */}
+      <section className="relative pt-24 pb-12 overflow-hidden z-50 bg-white">
+        <div className="absolute top-0 left-0 w-32 h-32 z-10">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+            <path
+              fill="#1E8DD0"
+              d="M60.9,-0.3C60.9,25.5,30.4,51,1.2,51C-27.9,51,-55.9,25.5,-55.9,-0.3C-55.9,-26.1,-27.9,-52.1,1.2,-52.1C30.4,-52.1,60.9,-26.1,60.9,-0.3Z"
+              transform="translate(100 100)"
+            />
+          </svg>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className={`text-5xl md:text-7xl font-bold mb-6 transition-all duration-1000 ${
-              isVisible.hero ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'
-            }`} id="hero">
-              <span className={darkMode ? 'text-[#B8E3E9]' : 'text-[#4F7C82]'}>Legal</span>
-              <span className={darkMode ? 'text-white' : 'text-[#0B2E33]'}>Flow</span>
-            </h1>
-            
-            <p className={`text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed ${
-              darkMode ? 'text-[#93B1B5]' : 'text-[#4F7C82]'
-            }`}>
-              Simplifying legal document processing and government scheme discovery with intelligent automation
-            </p>
+        <div className="absolute top-8 left-0 w-52 h-52 z-0">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path
+              fill="#BAE6FF"
+              d="M61,-62.3C75.4,-46.6,81,-23.3,80.1,-0.9C79.3,21.6,72,43.1,57.6,59.7C43.1,76.4,21.6,88,2.2,85.9C-17.3,83.7,-34.5,67.7,-49.9,51.1C-65.3,34.5,-78.9,17.3,-77.7,1.2C-76.5,-14.9,-60.6,-29.7,-45.2,-45.5C-29.7,-61.3,-14.9,-77.9,4.2,-82.1C23.3,-86.3,46.6,-78.1,61,-62.3Z"
+              transform="translate(100 100)"
+            />
+          </svg>
+        </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center space-x-2 ${
-                darkMode 
-                  ? 'bg-[#B8E3E9] text-[#0B2E33] hover:bg-[#93B1B5]' 
-                  : 'bg-[#4F7C82] text-white hover:bg-[#0B2E33]'
-              }`}>
-                <Upload size={24} />
-                <span>Parse Document</span>
-                <ArrowRight size={20} />
-              </button>
-              
-              <button className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 border-2 ${
-                darkMode 
-                  ? 'border-[#B8E3E9] text-[#B8E3E9] hover:bg-[#B8E3E9] hover:text-[#0B2E33]' 
-                  : 'border-[#4F7C82] text-[#4F7C82] hover:bg-[#4F7C82] hover:text-white'
-              }`}>
-                Explore Schemes
-              </button>
+        
+
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-8 py-6 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid md:grid-cols-2 gap-5 items-center">
+            
+            {/* Left Content */}
+            <div className="text-center pl-18 md:text-left">
+              <h1 className="text-4xl md:text-6xl  font-bold mb-4">
+                <span className={darkMode ? 'text-[#CADDE9]' : 'text-[#1E8DD0]'}>Legal</span>
+                <span className={darkMode ? 'text-white' : 'text-[#0B2E33]'}>Flow</span>
+              </h1>
+              <p
+                className={`text-xl md:text-2xl mb-8 leading-relaxed ${
+                  darkMode ? 'text-[#CADDE9]' : 'text-[#1E8DD0]'
+                }`}
+              >
+                Simplifying legal document processing and government scheme discovery with intelligent
+                automation.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                <button
+                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center space-x-2 ${
+                    darkMode
+                      ? 'bg-[#B8E3E9] text-[#1E8DD0] hover:bg-[#93B1B5]'
+                      : 'bg-[#1E8DD0] text-white hover:bg-[#0B2E33]'
+                  }`}
+                >
+                  <Upload size={24} />
+                  <span>Parse Document</span>
+                  <ArrowRight size={20} />
+                </button>
+
+                <button
+                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 border-2 ${
+                    darkMode
+                      ? 'border-[#B8E3E9] text-[#B8E3E9] hover:bg-[#B8E3E9] hover:text-[#0B2E33]'
+                      : 'border-[#1E8DD0] text-[#1E8DD0] hover:bg-[#1E8DD0] hover:text-white'
+                  }`}
+                >
+                  Explore Schemes
+                </button>
+              </div>
+            </div>
+
+            {/* Right Side Video */}
+            <div className="flex justify-center md:justify-end">
+              <Lottie
+                animationData={require("/public/assets/chatbot_person.json")}
+                loop={true}
+                autoplay={true}
+                className="w-full max-w-md"
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className={`py-16 ${darkMode ? 'bg-[#4F7C82]/10' : 'bg-[#B8E3E9]/20'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className={`text-3xl md:text-4xl font-bold mb-2 ${
-                  darkMode ? 'text-[#B8E3E9]' : 'text-[#4F7C82]'
-                }`}>
-                  {stat.number}
-                </div>
-                <div className={`text-sm md:text-base ${
-                  darkMode ? 'text-[#93B1B5]' : 'text-[#4F7C82]'
-                }`}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* <div className="absolute left-[-50] w-full h-32 z-0">
+          <svg className="w-full h-full" viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M0,160 C320,260 640,60 960,160 C1280,260 1600,60 1920,160"
+              stroke="#1E8DD0"
+              strokeWidth="6"
+              fill="none"
+            />
+          </svg>
+        </div> */}
 
       {/* Features Section */}
-      <section id="features" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+      <section id="features" className="py-30 bg-[#EEEEEE]">
+        <div className="absolute top-100 right-[0] w-100 h-102 z-[0]">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#F2F4F8" d="M62.4,-50.2C78,-30.2,85.9,-4.4,81.3,19.6C76.7,43.6,59.5,65.8,37.4,75.8C15.2,85.8,-12,83.6,-33.8,72.3C-55.6,61,-72.1,40.6,-78.5,16.7C-84.9,-7.1,-81.2,-34.5,-66.5,-54.4C-51.7,-74.2,-25.9,-86.6,-1.2,-85.6C23.4,-84.6,46.8,-70.3,62.4,-50.2Z" transform="translate(100 100)" />
+          </svg>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-50">
+          <div className="text-center mb-16 z-100">
             <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${
-              darkMode ? 'text-white' : 'text-[#0B2E33]'
+              darkMode ? 'text-white' : 'text-[#1E8DD0]'
             }`}>
               Powerful Features
             </h2>
-            <p className={`text-xl max-w-2xl mx-auto ${
-              darkMode ? 'text-[#93B1B5]' : 'text-[#4F7C82]'
+            <p className={`text-xl max-w-2xl mx-auto  ${
+              darkMode ? 'text-[#93B1B5]' : 'text-[#]'
             }`}>
               Everything you need to streamline legal document processing and government scheme discovery
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-4 gap-6">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
                 <div
                   key={index}
-                  className={`animate-on-scroll p-8 rounded-2xl transition-all duration-500 hover:scale-105 border ${
+                  className={`animate-on-scroll px-8 py-2 rounded-2xl transition-all duration-500 hover:scale-105 border  ${
                     darkMode 
                       ? 'bg-[#4F7C82]/10 border-[#4F7C82]/20 hover:bg-[#4F7C82]/15' 
-                      : 'bg-[#B8E3E9]/10 border-[#B8E3E9]/30 hover:bg-[#B8E3E9]/20'
-                  } ${isVisible[`feature-${index}`] ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'}`}
-                  id={`feature-${index}`}
+                      : ' border-[##E6F3F9]/30 hover:bg-[#80B5DC]/20'
+                  } ${isVisible[`feature-${index}`] ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'}` }
+                  id={`feature-${index}`} style={{ backgroundColor: feature.color }}
                 >
                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 ${
-                    darkMode ? 'bg-[#B8E3E9]/20' : 'bg-[#4F7C82]/20'
+                    darkMode ? 'bg-[#B8E3E9]/20' : 'bg-[#E6F3F9]/20'
                   }`}>
-                    <Icon size={28} className={darkMode ? 'text-[#B8E3E9]' : 'text-[#4F7C82]'} />
+                    <Icon size={28} className={darkMode ? 'text-[#B8E3E9]' : 'text-[#1E8DD0]'} />
                   </div>
                   
-                  <h3 className={`text-2xl font-bold mb-4 ${
-                    darkMode ? 'text-white' : 'text-[#0B2E33]'
+                  <h3 className={`text-xl font-bold mb-4 ${
+                    darkMode ? 'text-white' : 'text-[#1E8DD0]'
                   }`}>
                     {feature.title}
                   </h3>
                   
-                  <p className={`text-lg mb-6 leading-relaxed ${
-                    darkMode ? 'text-[#93B1B5]' : 'text-[#4F7C82]'
+                  <p className={`text mb-6 leading-relaxed ${
+                    darkMode ? 'text-[#93B1B5]' : 'text-[#80B5DC]'
                   }`}>
                     {feature.description}
                   </p>
 
                   <ul className="space-y-2">
-                    {feature.benefits.map((benefit, i) => (
+                    {/* {feature.benefits.map((benefit, i) => (
                       <li key={i} className={`flex items-center space-x-3 ${
                         darkMode ? 'text-[#B8E3E9]' : 'text-[#4F7C82]'
                       }`}>
                         <CheckCircle size={18} />
                         <span>{benefit}</span>
                       </li>
-                    ))}
+                    ))} */}
                   </ul>
                 </div>
               );
@@ -218,20 +281,65 @@ export default function Homepage() {
         </div>
       </section>
 
+
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="my-35 ">
+            <div className="relative w-full h-40 ">
+            {/* Left Half Circle */}
+              <div className="absolute top-1/2 left-0 transform -translate-y-1/2
+                  w-80 h-120 bg-blue-500 rounded-r-full flex items-center justify-center
+                  text-white font-bold border-50 border-l-0 border-[#CADDE9] shadow-lg">
+                Start
+              </div>
+
+               {/* Petals and Points */}
+      {petals.map((petal, index) => {
+        const angle =  -45 + index * 60; // angles for half-flower
+        const radius = 250;
+        const rad = (angle * Math.PI) / 180;
+        const x = radius * Math.cos(rad);
+        const y = radius * Math.sin(rad);
+        return (
+          <div key={index} className="absolute flex items-start" style={{ left: `${x + 150}px`, top: `calc(50% - ${y}px)` }}>
+            {/* Petal Circle */}
+            <div className="w-20 h-20 rounded-full bg-purple-500 flex items-center justify-center text-white font-semibold text-center p-2">
+              {petal.title.split(" ")[0]}{/* Short title for petal */}
+            </div>
+
+            {/* Points */}
+            <div className="ml-4 flex flex-row max-w-80 gap-2">
+              {petal.points.map((point, i) => (
+                <div key={i} className="bg-gray-100 px-3 py-1 rounded shadow text-sm">
+                  {point}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+
+
       {/* CTA Section */}
-      <section className={`py-20 ${darkMode ? 'bg-[#4F7C82]/5' : 'bg-[#B8E3E9]/10'}`}>
+      <section className={`py-15 ${darkMode ? 'bg-[#4F7C82]/5' : 'bg-[#B8E3E9]/10'}`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className={`animate-on-scroll ${
             isVisible.cta ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'
           }`} id="cta">
             <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${
-              darkMode ? 'text-white' : 'text-[#0B2E33]'
+              darkMode ? 'text-[#CADDE9]' : 'text-[#1E8DD0]'
             }`}>
               Ready to Get Started?
             </h2>
             
             <p className={`text-xl mb-8 ${
-              darkMode ? 'text-[#93B1B5]' : 'text-[#4F7C82]'
+              darkMode ? 'text-[#93B1B5]' : 'text-[#0B2E33]'
             }`}>
               Join thousands of users who trust LegalFlow for their document processing needs
             </p>
@@ -239,7 +347,7 @@ export default function Homepage() {
             <button className={`px-10 py-5 rounded-xl font-semibold text-xl transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center space-x-3 mx-auto ${
               darkMode 
                 ? 'bg-[#B8E3E9] text-[#0B2E33] hover:bg-[#93B1B5]' 
-                : 'bg-[#4F7C82] text-white hover:bg-[#0B2E33]'
+                : 'bg-[#1E8DD0] text-white hover:bg-[#0B2E33]'
             }`}>
               <Zap size={24} />
               <span>Start Free Trial</span>
@@ -250,10 +358,10 @@ export default function Homepage() {
       </section>
 
       {/* Footer */}
-      <footer className={`py-16 border-t ${
+      <footer className={`py-10 border-t ${
         darkMode 
           ? 'bg-[#0B2E33] border-[#4F7C82]/20' 
-          : 'bg-[#B8E3E9]/10 border-[#B8E3E9]/30'
+          : 'bg-[#BAE6FF]/10 border-[#B8E3E9]/30'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
@@ -264,7 +372,7 @@ export default function Homepage() {
                 LegalFlow
               </h3>
               <p className={`text-lg mb-6 max-w-md ${
-                darkMode ? 'text-[#93B1B5]' : 'text-[#4F7C82]'
+                darkMode ? 'text-[#93B1B5]' : 'text-[#1E8DD0]'
               }`}>
                 Revolutionizing legal document processing with intelligent automation and comprehensive government scheme discovery.
               </p>
@@ -276,7 +384,7 @@ export default function Homepage() {
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
                       darkMode 
                         ? 'bg-[#4F7C82]/20 text-[#B8E3E9] hover:bg-[#4F7C82]/30' 
-                        : 'bg-[#B8E3E9]/20 text-[#4F7C82] hover:bg-[#B8E3E9]/30'
+                        : 'bg-[#B8E3E9]/20 text-[#1E8DD0] hover:bg-[#B8E3E9]/30'
                     }`}
                   >
                     <Icon size={20} />
@@ -295,7 +403,7 @@ export default function Homepage() {
                 {['Document Parser', 'Government Schemes', 'About Us', 'Contact'].map((link) => (
                   <li key={link}>
                     <a href="#" className={`transition-colors hover:underline ${
-                      darkMode ? 'text-[#93B1B5] hover:text-[#B8E3E9]' : 'text-[#4F7C82] hover:text-[#0B2E33]'
+                      darkMode ? 'text-[#93B1B5] hover:text-[#B8E3E9]' : 'text-[#1E8DD0] hover:text-[#0B2E33]'
                     }`}>
                       {link}
                     </a>
@@ -314,7 +422,7 @@ export default function Homepage() {
                 {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Data Protection'].map((link) => (
                   <li key={link}>
                     <a href="#" className={`transition-colors hover:underline ${
-                      darkMode ? 'text-[#93B1B5] hover:text-[#B8E3E9]' : 'text-[#4F7C82] hover:text-[#0B2E33]'
+                      darkMode ? 'text-[#93B1B5] hover:text-[#B8E3E9]' : 'text-[#1E8DD0] hover:text-[#0B2E33]'
                     }`}>
                       {link}
                     </a>

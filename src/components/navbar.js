@@ -20,12 +20,10 @@ export default function Navbar({ darkMode, setDarkMode }) {
     { name: 'Document Parser', icon: FileText, href: '/document-analyser' },
     { name: 'Govt Schemes', icon: Building2, href: '/schemes' },
     { name: 'About', icon: Info, href: '/about' },
-    { name: 'Login', icon: Users, href: '/login' },
-    { name: 'More', icon: MoreHorizontal, href: '/more' }
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+    <nav className={`sticky top-0 left-0 right-0 z-100 transition-all duration-300 ${
       isScrolled 
         ? darkMode 
           ? 'bg-[#0B2E33]/95 backdrop-blur-md shadow-lg' 
@@ -58,7 +56,7 @@ export default function Navbar({ darkMode, setDarkMode }) {
                     className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 ${
                       darkMode 
                         ? 'text-[#B8E3E9] hover:text-white hover:bg-[#4F7C82]/20' 
-                        : 'text-[#4F7C82] hover:text-[#0B2E33] hover:bg-[#B8E3E9]/20'
+                        : 'text-[#1E8DD0] hover:text-[#1E8DD0] hover:bg-[#CADDE9]/20'
                     }`}
                   >
                     <Icon size={18} />
@@ -69,14 +67,29 @@ export default function Navbar({ darkMode, setDarkMode }) {
             </div>
           </div>
 
-          {/* Theme toggle */}
+          {/* Right side (Login + Theme toggle + Mobile menu) */}
           <div className="flex items-center space-x-4">
+            {/* Login button */}
+            <a
+              key="login"
+              href="/login"
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                darkMode 
+                  ? 'text-[#B8E3E9] hover:text-white hover:bg-[#4F7C82]/20' 
+                  : 'text-[#1E8DD0] hover:text-[#1E8DD0] hover:bg-[#CADDE9]/20'
+              }`}
+            >
+              <Users size={18} />
+              <span>Login</span>
+            </a>
+
+            {/* Theme toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-full transition-all duration-300 hover:scale-110 ${
                 darkMode 
                   ? 'bg-[#4F7C82]/20 text-[#B8E3E9] hover:bg-[#4F7C82]/30' 
-                  : 'bg-[#B8E3E9]/20 text-[#4F7C82] hover:bg-[#B8E3E9]/30'
+                  : 'bg-[#1E8DD0]/20 text-[#1E8DD0] hover:bg-[#CADDE9]/30'
               }`}
             >
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -89,7 +102,7 @@ export default function Navbar({ darkMode, setDarkMode }) {
                 className={`p-2 rounded-md transition-colors ${
                   darkMode 
                     ? 'text-[#B8E3E9] hover:bg-[#4F7C82]/20' 
-                    : 'text-[#4F7C82] hover:bg-[#B8E3E9]/20'
+                    : 'text-[#1E8DD0] hover:bg-[#CADDE9]/20'
                 }`}
               >
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -97,34 +110,6 @@ export default function Navbar({ darkMode, setDarkMode }) {
             </div>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className={`md:hidden transition-all duration-300 ${
-            darkMode ? 'bg-[#0B2E33]/95' : 'bg-white/95'
-          } backdrop-blur-md rounded-lg mt-2 p-4 shadow-lg`}>
-            <div className="space-y-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium transition-colors ${
-                      darkMode 
-                        ? 'text-[#B8E3E9] hover:bg-[#4F7C82]/20' 
-                        : 'text-[#4F7C82] hover:bg-[#B8E3E9]/20'
-                    }`}
-                  >
-                    <Icon size={20} />
-                    <span>{item.name}</span>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );

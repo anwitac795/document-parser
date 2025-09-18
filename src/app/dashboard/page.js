@@ -264,6 +264,10 @@ export default function Dashboard() {
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#1E8DD0" d="M60.9,-0.3C60.9,25.5,30.4,51,1.2,51C-27.9,51,-55.9,25.5,-55.9,-0.3C-55.9,-26.1,-27.9,-52.1,1.2,-52.1C30.4,-52.1,60.9,-26.1,60.9,-0.3Z" transform="translate(100 100)" />
+      </svg>
+      
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
