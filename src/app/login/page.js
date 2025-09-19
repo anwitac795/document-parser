@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
@@ -26,7 +26,7 @@ const firebaseConfig = {
 
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
@@ -36,6 +36,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -51,6 +52,12 @@ export default function Login() {
     hasSpecialChar: false,
     hasMinLength: false
   });
+
+    useEffect(() => {
+      setMounted(true);
+    }, []);
+
+
 
   // Check password strength
   useEffect(() => {
@@ -194,6 +201,8 @@ export default function Login() {
     }
   };
 
+  if (!mounted) return null;
+
   const PasswordStrengthIndicator = () => (
     <div className="space-y-2 mt-2">
       <div className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -240,16 +249,21 @@ export default function Login() {
   );
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      darkMode ? 'bg-[#0B2E33]' : 'bg-gray-50'
-    }`}>
+    <div className="min-h-screen relative" 
+      style={{
+       backgroundImage: "url(/layered-bg.png)", // your image in public folder
+       backgroundSize: '100% 100%',
+       backgroundPosition: 'center',
+       backgroundRepeat: 'no-repeat',
+      }}
+    >
       <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
       
-      <div className="pt-20 px-4 sm:px-6 lg:px-8">
+      <div className="pt-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
           <div className={`${
             darkMode ? 'bg-[#0B2E33]/80' : 'bg-white'
-          } backdrop-blur-sm rounded-2xl shadow-xl p-8 border ${
+          } backdrop-blur-sm rounded-2xl shadow-xl py-6 px-8 border ${
             darkMode ? 'border-[#4F7C82]/20' : 'border-gray-200'
           }`}>
             
@@ -403,7 +417,7 @@ export default function Login() {
                 className={`w-full py-3 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                   darkMode
                     ? 'bg-[#4F7C82] hover:bg-[#4F7C82]/90 text-white'
-                    : 'bg-[#0B2E33] hover:bg-[#0B2E33]/90 text-white'
+                    : 'bg-[#1E8DD0] hover:bg-[#1E8DD0]/90 text-white'
                 } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
               >
                 {loading ? (
@@ -422,12 +436,12 @@ export default function Login() {
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className={`w-full border-t ${
-                    darkMode ? 'border-[#4F7C82]/30' : 'border-gray-300'
+                    darkMode ? 'border-[#1E8DD0]/30' : 'border-gray-300'
                   }`} />
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className={`px-4 ${
-                    darkMode ? 'bg-[#0B2E33] text-[#93B1B5]' : 'bg-white text-gray-500'
+                    darkMode ? 'bg-[#1E8DD0] text-[#93B1B5]' : 'bg-white text-gray-500'
                   }`}>
                     Or continue with
                   </span>
@@ -438,9 +452,9 @@ export default function Login() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className={`mt-4 w-full py-3 px-4 rounded-lg border font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-3 ${
+                className={`mt-3 w-full py-3 px-4 rounded-lg border font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-3 ${
                   darkMode
-                    ? 'border-[#4F7C82] bg-[#0B2E33] text-[#B8E3E9] hover:bg-[#4F7C82]/10'
+                    ? 'border-[#4F7C82] bg-[#1E8DD0] text-[#B8E3E9] hover:bg-[#4F7C82]/10'
                     : 'border-gray-300 bg-white text-[#0B2E33] hover:bg-gray-50'
                 } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
               >
@@ -467,7 +481,7 @@ export default function Login() {
             </div>
 
             {/* Footer */}
-            <div className="mt-8 text-center space-y-4">
+            <div className="mt-6 text-center space-y-4">
               {isLogin && (
                 <button
                   type="button"
@@ -475,7 +489,7 @@ export default function Login() {
                   className={`text-sm font-medium transition-colors ${
                     darkMode
                       ? 'text-[#B8E3E9] hover:text-white'
-                      : 'text-[#4F7C82] hover:text-[#0B2E33]'
+                      : 'text-[#1E8DD0] hover:text-[#0B2E33]'
                   }`}
                 >
                   Forgot your password?
@@ -497,7 +511,7 @@ export default function Login() {
                   className={`font-medium transition-colors ${
                     darkMode
                       ? 'text-[#B8E3E9] hover:text-white'
-                      : 'text-[#4F7C82] hover:text-[#0B2E33]'
+                      : 'text-[#1E8DD0] hover:text-[#0B2E33]'
                   }`}
                 >
                   {isLogin ? 'Sign up' : 'Sign in'}

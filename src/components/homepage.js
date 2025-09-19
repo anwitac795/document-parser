@@ -20,6 +20,7 @@ import {
   Phone
 } from 'lucide-react';
 import Navbar from './navbar';
+import Link from 'next/link';
 
 export default function Homepage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -156,7 +157,7 @@ export default function Homepage() {
                 <span className={darkMode ? 'text-white' : 'text-[#0B2E33]'}>Flow</span>
               </h1>
               <p
-                className={`text-xl md:text-2xl mb-8 leading-relaxed ${
+                className={`text-xl md:text-2xl mb-8 leading-relaxed font-sans ${
                   darkMode ? 'text-[#CADDE9]' : 'text-[#1E8DD0]'
                 }`}
               >
@@ -164,27 +165,30 @@ export default function Homepage() {
                 automation.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                <button
-                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center space-x-2 ${
-                    darkMode
-                      ? 'bg-[#B8E3E9] text-[#1E8DD0] hover:bg-[#93B1B5]'
-                      : 'bg-[#1E8DD0] text-white hover:bg-[#0B2E33]'
-                  }`}
-                >
-                  <Upload size={24} />
-                  <span>Parse Document</span>
-                  <ArrowRight size={20} />
-                </button>
-
-                <button
-                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 border-2 ${
-                    darkMode
-                      ? 'border-[#B8E3E9] text-[#B8E3E9] hover:bg-[#B8E3E9] hover:text-[#0B2E33]'
-                      : 'border-[#1E8DD0] text-[#1E8DD0] hover:bg-[#1E8DD0] hover:text-white'
-                  }`}
-                >
-                  Explore Schemes
-                </button>
+                <Link href="/document-analyser">
+                  <button
+                    className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center space-x-2 ${
+                      darkMode
+                        ? 'bg-[#B8E3E9] text-[#1E8DD0] hover:bg-[#93B1B5]'
+                        : 'bg-[#1E8DD0] text-white hover:bg-[#0B2E33]'
+                    }`}
+                  >
+                    <Upload size={24} />
+                    <span>Parse Document</span>
+                    <ArrowRight size={20} />
+                  </button>
+                </Link>
+                <Link href="/communities">
+                  <button
+                    className={`px-4 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 border-2 ${
+                      darkMode
+                        ? 'border-[#B8E3E9] text-[#B8E3E9] hover:bg-[#B8E3E9] hover:text-[#0B2E33]'
+                        : 'border-[#1E8DD0] text-[#1E8DD0] hover:bg-[#1E8DD0] hover:text-white'
+                    }`}
+                  >
+                    Explore Communities
+                  </button>
+                </Link>
               </div>
             </div>
 
@@ -213,7 +217,7 @@ export default function Homepage() {
         </div> */}
 
       {/* Features Section */}
-      <section id="features" className="py-30 bg-[#EEEEEE]">
+      <section id="features" className="py-30 bg-[#BAE6FF]/10">
         <div className="absolute top-100 right-[0] w-100 h-102 z-[0]">
           <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
             <path fill="#F2F4F8" d="M62.4,-50.2C78,-30.2,85.9,-4.4,81.3,19.6C76.7,43.6,59.5,65.8,37.4,75.8C15.2,85.8,-12,83.6,-33.8,72.3C-55.6,61,-72.1,40.6,-78.5,16.7C-84.9,-7.1,-81.2,-34.5,-66.5,-54.4C-51.7,-74.2,-25.9,-86.6,-1.2,-85.6C23.4,-84.6,46.8,-70.3,62.4,-50.2Z" transform="translate(100 100)" />
@@ -281,53 +285,72 @@ export default function Homepage() {
         </div>
       </section>
 
-
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="my-35 ">
-            <div className="relative w-full h-40 ">
-            {/* Left Half Circle */}
-              <div className="absolute top-1/2 left-0 transform -translate-y-1/2
-                  w-80 h-120 bg-blue-500 rounded-r-full flex items-center justify-center
-                  text-white font-bold border-50 border-l-0 border-[#CADDE9] shadow-lg">
-                Start
-              </div>
-
-               {/* Petals and Points */}
-      {petals.map((petal, index) => {
-        const angle =  -45 + index * 60; // angles for half-flower
-        const radius = 250;
-        const rad = (angle * Math.PI) / 180;
-        const x = radius * Math.cos(rad);
-        const y = radius * Math.sin(rad);
-        return (
-          <div key={index} className="absolute flex items-start" style={{ left: `${x + 150}px`, top: `calc(50% - ${y}px)` }}>
-            {/* Petal Circle */}
-            <div className="w-20 h-20 rounded-full bg-purple-500 flex items-center justify-center text-white font-semibold text-center p-2">
-              {petal.title.split(" ")[0]}{/* Short title for petal */}
-            </div>
-
-            {/* Points */}
-            <div className="ml-4 flex flex-row max-w-80 gap-2">
-              {petal.points.map((point, i) => (
-                <div key={i} className="bg-gray-100 px-3 py-1 rounded shadow text-sm">
-                  {point}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"> 
+          <div className="my-45 ">
+            <div className="relative w-full h-30">
+                {/* Left Half Circle */}
+                <div
+                  className="absolute top-1/2 left-0 transform -translate-y-1/2
+                            w-80 h-120  rounded-r-full flex items-center justify-center
+                            text-white font-bold border-50 border-l-0 border-[#CADDE9] shadow-lg box-shadow: 10px 0 15px -5px rgba(0,0,0,0.3), 0 10px 15px -5px rgba(0,0,0,0.1)"
+                >
+                  <Lottie
+                    animationData={require("/public/assets/Files.json")}
+                    loop={true}
+                    autoplay={true}
+                    className="w-full max-w-md"
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-            </div>
 
-          </div>
+                {/* Petals */}
+                {petals.map((petal, index) => {
+                  const angle = -45 + index * 50; // angles for half-flower
+                  const radius = 220; // half of w-80? adjust visually
+                  const rad = (angle * Math.PI) / 180;
+
+                  // Center of the half-circle
+                  const circleCenterX = 60; // w-80 / 2
+                  const circleCenterY = 60; // h-120 / 2
+
+                  const x = circleCenterX + radius * Math.cos(rad);
+                  const y = circleCenterY + radius * Math.sin(rad);
+
+                  return (
+                    <div
+                      key={index}
+                      className="absolute flex flex-col font-sans font-medium text-lg px-2"
+                      style={{ left: `${x+100}px`, top: `${y-55}px` }}
+                    >
+                      {/* Petal Title */}
+                      <div className="font-semibold flex items-start p-2 text-[#1E8DD0]">
+                        {petal.title}
+                      </div>
+
+                      {/* Points in one row with wrapping */}
+                      <div className="mt-2 flex flex-wrap gap-2 max-w-150">
+                        {petal.points.map((point, i) => (
+                          <div
+                            key={i}
+                            className=" px-3 py-1 bg-[#EDF1F1]  rounded shadow text-sm"
+                          >
+                            {point}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
         </div>
       </section>
 
 
 
+
       {/* CTA Section */}
-      <section className={`py-15 ${darkMode ? 'bg-[#4F7C82]/5' : 'bg-[#B8E3E9]/10'}`}>
+      <section className={`py-20 ${darkMode ? 'bg-[#4F7C82]/5' : 'bg-[#B8E3E9]/10'}`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className={`animate-on-scroll ${
             isVisible.cta ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'
@@ -343,16 +366,17 @@ export default function Homepage() {
             }`}>
               Join thousands of users who trust LegalFlow for their document processing needs
             </p>
-
-            <button className={`px-10 py-5 rounded-xl font-semibold text-xl transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center space-x-3 mx-auto ${
-              darkMode 
-                ? 'bg-[#B8E3E9] text-[#0B2E33] hover:bg-[#93B1B5]' 
-                : 'bg-[#1E8DD0] text-white hover:bg-[#0B2E33]'
-            }`}>
-              <Zap size={24} />
-              <span>Start Free Trial</span>
-              <ChevronRight size={20} />
-            </button>
+            <Link href="/login">
+              <button className={`px-10 py-5 rounded-xl font-semibold text-xl transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center space-x-3 mx-auto ${
+                darkMode 
+                  ? 'bg-[#B8E3E9] text-[#0B2E33] hover:bg-[#93B1B5]' 
+                  : 'bg-[#1E8DD0] text-white hover:bg-[#0B2E33]'
+              }`}>
+                <Zap size={24} />
+                <span>Start Free Trial</span>
+                <ChevronRight size={20} />
+              </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -442,3 +466,6 @@ export default function Homepage() {
     </div>
   );
 }
+
+
+

@@ -2,24 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { Sun, Moon, Menu, X, FileText, Users, Info, Building2, MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
 
-export default function Navbar({ darkMode, setDarkMode }) {
+export default function Navbar() {
+  const [darkMode, setDarkMode] = useState(false); // default false
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false); // prevent SSR mismatch
 
-  // Handle scroll effect
+  // mark component mounted
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+    setMounted(true);
+    const saved = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(saved);
+  }, []);
+
+  // handle scroll
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  if (!mounted) return null; // render nothing until client
+
   const navItems = [
     { name: 'Document Parser', icon: FileText, href: '/document-analyser' },
-    { name: 'Govt Schemes', icon: Building2, href: '/schemes' },
-    { name: 'About', icon: Info, href: '/about' },
+    { name: 'Communities', icon: Building2, href: '/communities' },
+    { name: 'Learn More', icon: Info, href: '/learn-more' },
   ];
 
   return (
@@ -36,13 +46,19 @@ export default function Navbar({ darkMode, setDarkMode }) {
         <div className="flex items-center justify-between h-16">
           
           {/* Logo */}
+
           <div className="flex-shrink-0">
-            <h1 className={`text-2xl font-bold tracking-tight ${
-              darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
-            }`}>
-              LegalFlow
-            </h1>
+            <Link href="/" className="no-underline">
+              <h1
+                className={`text-2xl font-bold tracking-tight ${
+                  darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                }`}
+              >
+                LegalFlow
+              </h1>
+            </Link>
           </div>
+
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">

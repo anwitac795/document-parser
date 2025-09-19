@@ -261,21 +261,21 @@ export default function Dashboard() {
     }`}>
       <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
       
-      <div className="pt-20 px-4 sm:px-6 lg:px-8">
+      <div className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           
-          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          {/* <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         <path fill="#1E8DD0" d="M60.9,-0.3C60.9,25.5,30.4,51,1.2,51C-27.9,51,-55.9,25.5,-55.9,-0.3C-55.9,-26.1,-27.9,-52.1,1.2,-52.1C30.4,-52.1,60.9,-26.1,60.9,-0.3Z" transform="translate(100 100)" />
       </svg>
-      
+       */}
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className={`text-3xl font-bold ${
-                  darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                <h1 className={`text-4xl font-sans font-bold ${
+                  darkMode ? 'text-[#B8E3E9]' : 'text-[#1E8DD0]'
                 }`}>
-                  Dashboard
+                  Your Profile
                 </h1>
                 <p className={`mt-2 ${
                   darkMode ? 'text-[#93B1B5]' : 'text-gray-600'
@@ -291,7 +291,7 @@ export default function Dashboard() {
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 ${
                       darkMode
                         ? 'bg-[#4F7C82] hover:bg-[#4F7C82]/90 text-white'
-                        : 'bg-[#0B2E33] hover:bg-[#0B2E33]/90 text-white'
+                        : 'bg-[#14608d] hover:bg-[#0B2E33]/90 text-white'
                     }`}
                   >
                     <Edit3 size={18} />
@@ -319,7 +319,7 @@ export default function Dashboard() {
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 ${
                     darkMode
                       ? 'bg-red-600 hover:bg-red-700 text-white'
-                      : 'bg-red-500 hover:bg-red-600 text-white'
+                      : 'bg-[#d01e34] hover:bg-red-600 text-white'
                   }`}
                 >
                   <LogOut size={18} />
@@ -357,7 +357,7 @@ export default function Dashboard() {
               {/* Profile Picture Section */}
               <div className="text-center">
                 <h3 className={`text-xl font-semibold mb-6 ${
-                  darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                  darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                 }`}>
                   Profile Picture
                 </h3>
@@ -409,7 +409,7 @@ export default function Dashboard() {
               {/* Personal Information */}
               <div>
                 <h3 className={`text-xl font-semibold mb-6 ${
-                  darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                  darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                 }`}>
                   Personal Information
                 </h3>
@@ -419,7 +419,7 @@ export default function Dashboard() {
                   {/* Aadhar Number */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${
-                      darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                      darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                     }`}>
                       Aadhar Card Number
                     </label>
@@ -452,7 +452,7 @@ export default function Dashboard() {
                   {/* PAN Number */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${
-                      darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                      darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                     }`}>
                       PAN Card Number
                     </label>
@@ -485,7 +485,7 @@ export default function Dashboard() {
                   {/* Employment Status */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${
-                      darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                      darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                     }`}>
                       Employment Status
                     </label>
@@ -516,7 +516,7 @@ export default function Dashboard() {
                   {/* Annual Income */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${
-                      darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                      darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                     }`}>
                       Annual Income Range
                     </label>
@@ -550,7 +550,7 @@ export default function Dashboard() {
               {/* Educational/Professional Information */}
               <div>
                 <h3 className={`text-xl font-semibold mb-6 ${
-                  darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                  darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                 }`}>
                   Educational & Professional Details
                 </h3>
@@ -560,7 +560,7 @@ export default function Dashboard() {
                   {/* Student Status */}
                   <div>
                     <label className={`block text-sm font-medium mb-3 ${
-                      darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                      darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                     }`}>
                       Are you currently a student?
                     </label>
@@ -594,7 +594,7 @@ export default function Dashboard() {
                   {formData.studentStatus === 'yes' && (
                     <div>
                       <label className={`block text-sm font-medium mb-2 ${
-                        darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
+                        darkMode ? 'text-[#B8E3E9]' : 'text-[#14608d]'
                       }`}>
                         College/School Name <span className="text-red-500">*</span>
                       </label>
@@ -669,7 +669,7 @@ export default function Dashboard() {
                     className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105 active:scale-95 ${
                       darkMode
                         ? 'bg-[#4F7C82] hover:bg-[#4F7C82]/90 text-white'
-                        : 'bg-[#0B2E33] hover:bg-[#0B2E33]/90 text-white'
+                        : 'bg-[#14608d] hover:bg-[#0B2E33]/90 text-white'
                     } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
                   >
                     {saving ? (
