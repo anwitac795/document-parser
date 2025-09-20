@@ -21,13 +21,150 @@ import {
   Clock,
   LogOut,
   Menu,
-  MessageCirclePlus
+  MessageCirclePlus,
+  Copy,
+  Check
 } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, database } from '../../../firebase-config'; // Make sure this path is correct
 import { ref, push, onValue, remove, get, set, update } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import Lottie from 'lottie-react';
+
+// Markdown rendering component
+const MarkdownRenderer = ({ content, darkMode }) => {
+  const [copiedCode, setCopiedCode] = useState(null);
+
+  const copyToClipboard = async (text, id) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCode(id);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const formatMarkdown = (text) => {
+    // Split by code blocks first to handle them separately
+    const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    let codeBlockId = 0;
+
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      // Add text before code block
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: text.slice(lastIndex, match.index)
+        });
+      }
+      
+      // Add code block
+      parts.push({
+        type: 'codeblock',
+        language: match[1] || 'text',
+        content: match[2].trim(),
+        id: `code-${codeBlockId++}`
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.slice(lastIndex)
+      });
+    }
+
+    return parts.map((part, index) => {
+      if (part.type === 'codeblock') {
+        return (
+          <div key={index} className={`my-4 rounded-lg overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-gray-50'} border ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+            <div className={`flex justify-between items-center px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-200'} border-b`}>
+              <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {part.language}
+              </span>
+              <button
+                onClick={() => copyToClipboard(part.content, part.id)}
+                className={`flex items-center space-x-1 px-2 py-1 rounded text-xs ${darkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-200 text-gray-600'}`}
+              >
+                {copiedCode === part.id ? (
+                  <>
+                    <Check className="h-3 w-3" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <pre className={`p-4 overflow-x-auto text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+              <code>{part.content}</code>
+            </pre>
+          </div>
+        );
+      } else {
+        return (
+          <div key={index} dangerouslySetInnerHTML={{ __html: formatTextMarkdown(part.content, darkMode) }} />
+        );
+      }
+    });
+  };
+
+  const formatTextMarkdown = (text, darkMode) => {
+    return text
+      // Headers
+      .replace(/^### (.*$)/gm, `<h3 class="text-lg font-semibold mt-4 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}"">$1</h3>`)
+      .replace(/^## (.*$)/gm, `<h2 class="text-xl font-semibold mt-4 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}">$1</h2>`)
+      .replace(/^# (.*$)/gm, `<h1 class="text-2xl font-bold mt-4 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}">$1</h1>`)
+      
+      // Bold
+      .replace(/\*\*(.*?)\*\*/g, `<strong class="${darkMode ? 'text-white' : 'text-gray-900'}">$1</strong>`)
+      
+      // Italic
+      .replace(/\*(.*?)\*/g, `<em class="${darkMode ? 'text-gray-200' : 'text-gray-700'}">$1</em>`)
+      
+      // Inline code
+      .replace(/`([^`]+)`/g, `<code class="px-1 py-0.5 rounded text-sm ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'} font-mono">$1</code>`)
+      
+      // Unordered lists
+      .replace(/^\* (.*$)/gm, `<li class="ml-4 ${darkMode ? 'text-gray-200' : 'text-gray-800'}">• $1</li>`)
+      .replace(/^- (.*$)/gm, `<li class="ml-4 ${darkMode ? 'text-gray-200' : 'text-gray-800'}">• $1</li>`)
+      
+      // Ordered lists
+      .replace(/^\d+\. (.*$)/gm, (match, content, offset, string) => {
+        const lines = string.slice(0, offset).split('\n');
+        const currentLineIndex = lines.length - 1;
+        const currentLine = lines[currentLineIndex];
+        const number = currentLine.match(/^(\d+)\./)?.[1] || '1';
+        return `<li class="ml-4 ${darkMode ? 'text-gray-200' : 'text-gray-800'}" style="list-style-type: decimal; margin-left: 1.5rem;">${content}</li>`;
+      })
+      
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, `<a href="$2" class="text-blue-500 hover:text-blue-600 underline" target="_blank" rel="noopener noreferrer">$1</a>`)
+      
+      // Line breaks
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>')
+      
+      // Wrap consecutive list items in ul tags
+      .replace(/(<li[^>]*>.*?<\/li>(?:\s*<li[^>]*>.*?<\/li>)*)/gs, '<ul class="my-2 space-y-1">$1</ul>');
+  };
+
+  return (
+    <div className="prose prose-sm max-w-none">
+      {formatMarkdown(content)}
+    </div>
+  );
+};
 
 export default function ChatBot() {
   const router = useRouter();
@@ -287,7 +424,18 @@ export default function ChatBot() {
   const speakText = (text) => {
     if (synthRef.current && !isSpeaking) {
       synthRef.current.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
+      // Strip markdown for speech
+      const cleanText = text
+        .replace(/```[\s\S]*?```/g, 'code block')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/#{1,6}\s+(.*)/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&[^;]+;/g, '');
+      
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
       synthRef.current.speak(utterance);
@@ -424,8 +572,7 @@ export default function ChatBot() {
   }
 
   return (
-
-      <div className={`min-h-screen flex ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen flex ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Error Toast */}
       {error && (
         <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-100">
@@ -439,11 +586,9 @@ export default function ChatBot() {
       )}
 
       {/* Sidebar */}
-      <div className={`${showSidebar ? 'w-64' : 'w-18'} transition-all duration-300 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-500'} border-r flex flex-col`}
-      >
-
+      <div className={`${showSidebar ? 'w-64' : 'w-18'} transition-all duration-300 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-500'} border-r flex flex-col`}>
         {/* Sidebar Header */}
-        <div className="p-4  border-gray-200">
+        <div className="p-4 border-gray-200">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
             className={`w-full flex items-center space-x-2 p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
@@ -470,7 +615,7 @@ export default function ChatBot() {
 
         {/* Mode Toggle */}
         <div className="p-4">
-          <div className={`w-full flex items-center  space-x-3 p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+          <div className={`w-full flex items-center space-x-3 p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
             <Clock className={`h-4 w-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
             {showSidebar && (
               <>
@@ -535,7 +680,6 @@ export default function ChatBot() {
             ) : (
               <Moon className="h-4 w-4 text-blue-500" />
             )}
-            
           </button>
 
           <button
@@ -550,16 +694,14 @@ export default function ChatBot() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-
-
         {/* Header */}
         <div className={`p-4 border-b ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between`}
           style={{
-       backgroundImage: "url(/chatbot-bg.png)", // your image in public folder
-       backgroundSize: '100% 100%',
-       backgroundPosition: 'center',
-       backgroundRepeat: 'no-repeat',
-      }}
+            backgroundImage: "url(/chatbot-bg.png)",
+            backgroundSize: '100% 100%',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
         >
           <div>
             <h1 className={`text-xl font-semibold ${darkMode ? 'text-gray-900' : 'text-[#1E8DD0]'}`}>
@@ -576,13 +718,12 @@ export default function ChatBot() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4"
           style={{
-       backgroundImage: "url(/chatbot-bg.png)", // your image in public folder
-       backgroundSize: '100% 100%',
-       backgroundPosition: 'center',
-       backgroundRepeat: 'no-repeat',
-      }}
+            backgroundImage: "url(/chatbot-bg.png)",
+            backgroundSize: '100% 100%',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
         >
-
           {messages.length === 0 && (
             <div className="text-center py-12">
               <div className="flex justify-center items-center h-30 w-30 mx-auto">
@@ -595,13 +736,12 @@ export default function ChatBot() {
               </div>
               
               <h3 className={`text-3xl font-extrabold mb-2 bg-clip-text text-transparent 
-              bg-gradient-to-r from-[#62D5DE]  to-[#1E8DD0]`}>
+              bg-gradient-to-r from-[#62D5DE] to-[#1E8DD0]`}>
                 Confused by Legal Jargon?
               </h3>
               <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Let our AI break it down – upload a file and understand it in seconds
               </p>
-
             </div>
           )}
 
@@ -626,10 +766,14 @@ export default function ChatBot() {
                         <span className="text-sm truncate">{message.file.name}</span>
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    {message.type === 'bot' ? (
+                      <MarkdownRenderer content={message.content} darkMode={darkMode} />
+                    ) : (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    )}
                     {message.type === 'bot' && (
                       <button
-                        onClick={() => speakText(message.content)}
+                        onClick={() => isSpeaking ? stopSpeaking() : speakText(message.content)}
                         className={`mt-2 p-1 rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'}`}
                       >
                         {isSpeaking ? (
@@ -664,7 +808,7 @@ export default function ChatBot() {
         {/* Input Area */}
         <div className={`p-4 border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
           style={{
-            backgroundImage: "url(/chatbot-bg.png)", // your image in public folder
+            backgroundImage: "url(/chatbot-bg.png)",
             backgroundSize: '100% 100%',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
@@ -691,9 +835,7 @@ export default function ChatBot() {
             </div>
           )}
 
-          <div className="flex items-center space-x-3 w-full"
-            
-          >
+          <div className="flex items-center space-x-3 w-full">
             <button
               onClick={() => fileInputRef.current?.click()}
               className={`p-3 rounded-full ${darkMode ? 'bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
