@@ -35,12 +35,8 @@ export default function Navbar() {
   return (
     <nav className={`sticky top-0 left-0 right-0 z-100 transition-all duration-300 ${
       isScrolled 
-        ? darkMode 
-          ? 'bg-[#0B2E33]/95 backdrop-blur-md shadow-lg' 
-          : 'bg-white/95 backdrop-blur-md shadow-lg'
-        : darkMode
-          ? 'bg-transparent'
-          : 'bg-transparent'
+        ?  'bg-white/95 backdrop-blur-md shadow-lg'
+        :  'bg-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -50,9 +46,9 @@ export default function Navbar() {
           <div className="flex-shrink-0">
             <Link href="/" className="no-underline">
               <h1
-                className={`text-2xl font-bold tracking-tight ${
-                  darkMode ? 'text-[#B8E3E9]' : 'text-[#0B2E33]'
-                }`}
+                className={`text-2xl font-bold tracking-tight 
+                   'text-[#0B2E33]'
+                `}
               >
                 LegalFlow
               </h1>
@@ -69,11 +65,8 @@ export default function Navbar() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                      darkMode 
-                        ? 'text-[#B8E3E9] hover:text-white hover:bg-[#4F7C82]/20' 
-                        : 'text-[#1E8DD0] hover:text-[#1E8DD0] hover:bg-[#CADDE9]/20'
-                    }`}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 text-[#1E8DD0] hover:text-[#1E8DD0] hover:bg-[#CADDE9]/20
+                    `}
                   >
                     <Icon size={18} />
                     <span>{item.name}</span>
@@ -89,11 +82,9 @@ export default function Navbar() {
             <a
               key="login"
               href="/login"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                darkMode 
-                  ? 'text-[#B8E3E9] hover:text-white hover:bg-[#4F7C82]/20' 
-                  : 'text-[#1E8DD0] hover:text-[#1E8DD0] hover:bg-[#CADDE9]/20'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 
+                text-[#1E8DD0] hover:text-[#1E8DD0] hover:bg-[#CADDE9]/20
+              `}
             >
               <Users size={18} />
               <span>Login</span>
@@ -102,24 +93,18 @@ export default function Navbar() {
             {/* Theme toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-full transition-all duration-300 hover:scale-110 ${
-                darkMode 
-                  ? 'bg-[#4F7C82]/20 text-[#B8E3E9] hover:bg-[#4F7C82]/30' 
-                  : 'bg-[#1E8DD0]/20 text-[#1E8DD0] hover:bg-[#CADDE9]/30'
-              }`}
+              className={`p-2 rounded-full transition-all duration-300 hover:scale-110 
+                 'bg-[#1E8DD0]/20 text-[#1E8DD0] hover:bg-[#CADDE9]/30'
+              `}
             >
-              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             {/* Mobile menu button */}
             <div className="md:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className={`p-2 rounded-md transition-colors ${
-                  darkMode 
-                    ? 'text-[#B8E3E9] hover:bg-[#4F7C82]/20' 
-                    : 'text-[#1E8DD0] hover:bg-[#CADDE9]/20'
-                }`}
+                className={`p-2 rounded-md transition-colors 'text-[#1E8DD0] hover:bg-[#CADDE9]/20'
+                `}
               >
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
