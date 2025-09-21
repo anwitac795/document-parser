@@ -1,6 +1,6 @@
 "use client";
 import Image from 'next/image';
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { 
   Send, 
   ArrowLeft, 
@@ -22,7 +22,7 @@ import {
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { onAuthStateChanged } from 'firebase/auth';
 // Correct path - adjust based on your actual firebase-config.js location
-import { auth, database } from '../../../../firebase-config';
+import { auth, database } from '../../../firebase-config';
 import { 
   ref, 
   push, 
@@ -38,7 +38,8 @@ import {
   off
 } from 'firebase/database';
 
-export default function CommunityChatPage() {
+// Separate component for the chat content
+function CommunityChatContent() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -614,5 +615,26 @@ export default function CommunityChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function ChatLoadingFallback() {
+  return (
+    <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading chat...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main component wrapped with Suspense
+export default function CommunityChatPage() {
+  return (
+    <Suspense fallback={<ChatLoadingFallback />}>
+      <CommunityChatContent />
+    </Suspense>
   );
 }
