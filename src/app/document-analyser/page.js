@@ -594,7 +594,7 @@ export default function ChatBot() {
         formData.append('context', JSON.stringify(lastFiveMessages));
       }
 
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch('https://document-parser-backend-nywv.onrender.com/chat', {
         method: 'POST',
         body: formData
       });

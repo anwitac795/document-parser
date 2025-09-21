@@ -36,10 +36,23 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 
 vision_client = None
 try:
-    credentials_path = os.getenv("GOOGLE_CLOUD_CREDENTIALS_PATH")
-    if credentials_path and os.path.exists(credentials_path):
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
-        vision_client = vision.ImageAnnotatorClient()
+    import tempfile
+
+# Get JSON content from env
+    service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+    if service_account_json:
+        # Write to temporary file
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as tmp_file:
+            tmp_file.write(service_account_json)
+            tmp_file_path = tmp_file.name
+
+        # Point Google SDK to this file
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = tmp_file_path
+        try:
+            vision_client = vision.ImageAnnotatorClient()
+        except Exception as e:
+            print(f"Warning: Google Vision API not available: {str(e)}")
+
 except Exception as e:
     print(f"Warning: Google Vision API not available: {str(e)}")
 
