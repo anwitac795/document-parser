@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { 
   Send, 
   ArrowLeft, 
@@ -8,7 +8,7 @@ import {
   Settings,
   Pin,
   MoreVertical,
-  Image,
+  Image as ImageIcon,
   Paperclip,
   Smile,
   Search,
@@ -38,7 +38,8 @@ import {
   off
 } from 'firebase/database';
 
-export default function CommunityChatPage() {
+// Separate component for the chat content
+function CommunityChatContent() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -77,56 +78,45 @@ export default function CommunityChatPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Load community data
-  useEffect(() => {
-    if (mounted && id) {
-      loadCommunityData();
+  // Load community members
+  const loadCommunityMembers = useCallback(() => {
+    const membersRef = ref(database, `communityMembers/${id}`);
+    const unsubscribe = onValue(membersRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const membersList = Object.values(data);
+        setCommunityMembers(membersList);
+      } else {
+        setCommunityMembers([]);
+      }
+    });
+
+    return unsubscribe;
+  }, [id]);
+
+  // Initialize welcome message for new communities
+  const initializeWelcomeMessage = useCallback(async () => {
+    if (!community || !user) return;
+
+    const welcomeMessage = {
+      text: `Welcome to ${community.name}! This is the beginning of your community chat. Feel free to introduce yourself and start meaningful discussions.`,
+      authorId: 'system',
+      authorName: 'System',
+      authorAvatar: '/icons/bot-avatar.png',
+      timestamp: new Date().toISOString(),
+      type: 'system'
+    };
+
+    try {
+      const messagesRef = ref(database, `communityMessages/${id}`);
+      await push(messagesRef, welcomeMessage);
+    } catch (error) {
+      console.error('Error creating welcome message:', error);
     }
-  }, [mounted, id]);
-
-  // Load messages when user and community are ready
-  useEffect(() => {
-    if (user && community && mounted) {
-      const unsubscribe = loadMessages();
-      return () => {
-        if (unsubscribe) unsubscribe();
-      };
-    }
-  }, [user, community, mounted]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Update user's online status
-  useEffect(() => {
-    if (user && community) {
-      const userStatusRef = ref(database, `communityOnlineUsers/${id}/${user.uid}`);
-      
-      // Set user as online
-      set(userStatusRef, {
-        name: user.displayName || user.email,
-        avatar: user.photoURL || '/default-avatar.png',
-        lastSeen: serverTimestamp()
-      });
-
-      // Set user as offline when they leave
-      const handleBeforeUnload = () => {
-        set(userStatusRef, null);
-      };
-
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      
-      return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        set(userStatusRef, null);
-      };
-    }
-  }, [user, community, id]);
+  }, [community, user, id]);
 
   // Load community data from Firebase or URL params
-  const loadCommunityData = async () => {
+  const loadCommunityData = useCallback(async () => {
     try {
       // First try to get from Firebase
       const communityRef = ref(database, `communities/${id}`);
@@ -159,26 +149,10 @@ export default function CommunityChatPage() {
       console.error('Error loading community:', error);
       setError('Failed to load community');
     }
-  };
-
-  // Load community members
-  const loadCommunityMembers = () => {
-    const membersRef = ref(database, `communityMembers/${id}`);
-    const unsubscribe = onValue(membersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const membersList = Object.values(data);
-        setCommunityMembers(membersList);
-      } else {
-        setCommunityMembers([]);
-      }
-    });
-
-    return unsubscribe;
-  };
+  }, [id, searchParams, loadCommunityMembers]);
 
   // Load messages with real-time listener
-  const loadMessages = () => {
+  const loadMessages = useCallback(() => {
     const messagesRef = ref(database, `communityMessages/${id}`);
     const messagesQuery = query(messagesRef, orderByChild('timestamp'), limitToLast(100));
     
@@ -202,28 +176,55 @@ export default function CommunityChatPage() {
 
     messagesListenerRef.current = unsubscribe;
     return unsubscribe;
-  };
+  }, [id, initializeWelcomeMessage]);
 
-  // Initialize welcome message for new communities
-  const initializeWelcomeMessage = async () => {
-    if (!community || !user) return;
-
-    const welcomeMessage = {
-      text: `Welcome to ${community.name}! This is the beginning of your community chat. Feel free to introduce yourself and start meaningful discussions.`,
-      authorId: 'system',
-      authorName: 'System',
-      authorAvatar: '/icons/bot-avatar.png',
-      timestamp: new Date().toISOString(),
-      type: 'system'
-    };
-
-    try {
-      const messagesRef = ref(database, `communityMessages/${id}`);
-      await push(messagesRef, welcomeMessage);
-    } catch (error) {
-      console.error('Error creating welcome message:', error);
+  // Load community data
+  useEffect(() => {
+    if (mounted && id) {
+      loadCommunityData();
     }
-  };
+  }, [mounted, id, loadCommunityData]);
+
+  // Load messages when user and community are ready
+  useEffect(() => {
+    if (user && community && mounted) {
+      const unsubscribe = loadMessages();
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    }
+  }, [user, community, mounted, loadMessages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Update user's online status
+  useEffect(() => {
+    if (user && community) {
+      const userStatusRef = ref(database, `communityOnlineUsers/${id}/${user.uid}`);
+      
+      // Set user as online
+      set(userStatusRef, {
+        name: user.displayName || user.email,
+        avatar: user.photoURL || '/default-avatar.png',
+        lastSeen: serverTimestamp()
+      });
+
+      // Set user as offline when they leave
+      const handleBeforeUnload = () => {
+        set(userStatusRef, null);
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        set(userStatusRef, null);
+      };
+    }
+  }, [user, community, id]);
 
   // Send message
   const handleSend = async () => {
@@ -363,7 +364,7 @@ export default function CommunityChatPage() {
               >
                 ×
               </button>
-            </div>2
+            </div>
           </div>
           <div className="overflow-y-auto max-h-80">
             {communityMembers.map((member, index) => (
@@ -451,7 +452,7 @@ export default function CommunityChatPage() {
             <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
           
-          <Image 
+          <ImageIcon 
             src={community.avatar || '/icons/default-community.png'} 
             alt={community.name} 
             className="w-12 h-12 rounded-full object-cover"
@@ -517,7 +518,7 @@ export default function CommunityChatPage() {
             >
               <div className="flex items-start space-x-2 max-w-xl">
                 {!isOwnMessage && (
-                  <Image
+                  <img
                     src={msg.authorAvatar || '/default-avatar.png'}
                     alt={msg.authorName}
                     className="w-8 h-8 rounded-full flex-shrink-0"
@@ -608,5 +609,26 @@ export default function CommunityChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function ChatLoadingFallback() {
+  return (
+    <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading chat...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main component wrapped with Suspense
+export default function CommunityChatPage() {
+  return (
+    <Suspense fallback={<ChatLoadingFallback />}>
+      <CommunityChatContent />
+    </Suspense>
   );
 }
