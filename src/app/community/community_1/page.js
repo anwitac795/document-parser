@@ -1,5 +1,5 @@
 "use client";
-import Image from 'next/image';
+
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Send, 
@@ -363,12 +363,12 @@ export default function CommunityChatPage() {
               >
                 ×
               </button>
-            </div>
+            </div>2
           </div>
           <div className="overflow-y-auto max-h-80">
             {communityMembers.map((member, index) => (
               <div key={index} className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <Image
+                <img
                   src={member.userAvatar || '/default-avatar.png'}
                   alt={member.userName}
                   className="w-10 h-10 rounded-full"

@@ -1,29 +1,28 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
-import {
+import Image from 'next/image';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { 
+  Send, 
+  ArrowLeft, 
+  Users, 
+  Settings,
+  Pin,
+  MoreVertical,
+  Image as ImageIcon,
+  Paperclip,
+  Smile,
   Search,
-  Play,
-  Users,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  SortAsc,
-  Plus,
-  Heart,
-  MessageCircle,
-  Share2,
-  BookOpen,
+  Phone,
   Video,
-  TrendingUp
+  Info,
+  UserPlus,
+  Shield,
+  Flag
 } from "lucide-react";
-import NoSSR from "../../components/NoSSR";
-import Navbar from "../../components/navbar";
-import { useRouter } from "next/navigation";
-import CommunityCard from "../../components/communityCard";
-import { darkMode } from "../../components/navbar";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, database } from '../../../firebase-config';
+// Correct path - adjust based on your actual firebase-config.js location
+import { auth, database } from '../../../../firebase-config';
 import { 
   ref, 
   push, 
@@ -35,952 +34,585 @@ import {
   serverTimestamp,
   query,
   orderByChild,
-  limitToLast
+  limitToLast,
+  off
 } from 'firebase/database';
 
-const CommunitiesPage = () => {
+export default function CommunityChatPage() {
+  const { id } = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
+
+  // --- Hooks always at top ---
   const [user, setUser] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [communities, setCommunities] = useState([]);
-  const [filteredCommunities, setFilteredCommunities] = useState([]);
-  const [userMemberships, setUserMemberships] = useState(new Set());
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('members'); // members, newest, activity
-  const [showFilters, setShowFilters] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [community, setCommunity] = useState(null);
+  const [communityMembers, setCommunityMembers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  const [showMembersList, setShowMembersList] = useState(false);
+  const [showCommunityInfo, setShowCommunityInfo] = useState(false);
   const [error, setError] = useState(null);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   
-  // Sample YouTube videos (you can also store these in Firebase if needed)
-  const videos = [
-    {
-      id: 1,
-      url: "https://www.youtube.com/embed/t96A1DrsZTw",
-      title: "Understanding Legal Contracts",
-      views: "45K views",
-      duration: "12:34"
-    },
-    {
-      id: 2,
-      url: "https://www.youtube.com/embed/fp051F5vb9I",
-      title: "Government Schemes Explained",
-      views: "32K views",
-      duration: "8:45"
-    },
-    {
-      id: 3,
-      url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-      title: "Property Law Basics",
-      views: "28K views",
-      duration: "15:20"
-    },
-    {
-      id: 4,
-      url: "https://www.youtube.com/embed/_WYqsW1lYbU",
-      title: "Intellectual Property Rights",
-      views: "19K views",
-      duration: "10:12"
-    },
-    {
-      id: 5,
-      url: "https://www.youtube.com/embed/Kd0SKouTtQY",
-      title: "Consumer Protection Laws",
-      views: "24K views",
-      duration: "9:30"
-    },
-  ];
+  const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const messagesListenerRef = useRef(null);
 
-  const categories = [
-    'All', 'Contract', 'Property', 'Consumer', 'Family', 
-    'Business', 'Finance', 'Immigration', 'Cyber', 'Criminal', 'Employment'
-  ];
+  useEffect(() => setMounted(true), []);
 
-  // Initialize default communities if none exist
-  const initializeDefaultCommunities = async () => {
-    try {
-      const communitiesRef = ref(database, 'communities');
-      const snapshot = await get(communitiesRef);
-      
-      if (!snapshot.exists()) {
-        const defaultCommunities = [
-          {
-            name: "Contract Law Experts",
-            avatar: "/icons/contract_law.png",
-            category: "Contract",
-            description: "Discuss contract clauses, review agreements, and get legal opinions.",
-            members: 1520,
-            thumbnail: "https://source.unsplash.com/400x300/?law,contract",
-            createdBy: "admin",
-            createdAt: serverTimestamp(),
-            isActive: true,
-            tags: ["contracts", "agreements", "legal-review"],
-            rules: [
-              "Be respectful and professional",
-              "No spam or self-promotion",
-              "Share reliable legal information only"
-            ]
-          },
-          {
-            name: "Property Law & Real Estate",
-            avatar: "/icons/property_law.png",
-            category: "Property",
-            description: "Share insights on property disputes, ownership laws, and tenancy agreements.",
-            members: 980,
-            thumbnail: "https://source.unsplash.com/400x300/?property,law",
-            createdBy: "admin",
-            createdAt: serverTimestamp(),
-            isActive: true,
-            tags: ["property", "real-estate", "tenancy"],
-            rules: [
-              "Be respectful and professional",
-              "No spam or self-promotion",
-              "Share reliable legal information only"
-            ]
-          },
-          {
-            name: "Consumer Rights Forum",
-            avatar: "/icons/consumer-rights.png",
-            category: "Consumer",
-            description: "Discuss complaints, product/service issues, and consumer protection laws.",
-            members: 1340,
-            thumbnail: "https://source.unsplash.com/400x300/?consumer,law",
-            createdBy: "admin",
-            createdAt: serverTimestamp(),
-            isActive: true,
-            tags: ["consumer-rights", "complaints", "protection"],
-            rules: [
-              "Be respectful and professional",
-              "No spam or self-promotion",
-              "Share reliable legal information only"
-            ]
-          },
-          {
-            name: "Family & Divorce Law",
-            avatar: "/icons/family_law.png",
-            category: "Family",
-            description: "Get advice on divorce, custody, maintenance, and other family matters.",
-            members: 765,
-            thumbnail: "https://source.unsplash.com/400x300/?family,law",
-            createdBy: "admin",
-            createdAt: serverTimestamp(),
-            isActive: true,
-            tags: ["family-law", "divorce", "custody"],
-            rules: [
-              "Be respectful and professional",
-              "No spam or self-promotion",
-              "Share reliable legal information only"
-            ]
-          },
-          {
-            name: "Startup & Business Law",
-            avatar: "/icons/business_law.png",
-            category: "Business",
-            description: "Legal guidance for startups: incorporation, compliance, contracts, and funding.",
-            members: 1120,
-            thumbnail: "https://source.unsplash.com/400x300/?startup,law",
-            createdBy: "admin",
-            createdAt: serverTimestamp(),
-            isActive: true,
-            tags: ["business", "startups", "compliance"],
-            rules: [
-              "Be respectful and professional",
-              "No spam or self-promotion",
-              "Share reliable legal information only"
-            ]
-          },
-          {
-            name: "Tax & Finance Law",
-            avatar: "/icons/tax.png",
-            category: "Finance",
-            description: "Share insights on tax planning, filing, GST, and financial regulations.",
-            members: 890,
-            thumbnail: "https://source.unsplash.com/400x300/?tax,law",
-            createdBy: "admin",
-            createdAt: serverTimestamp(),
-            isActive: true,
-            tags: ["tax", "finance", "gst"],
-            rules: [
-              "Be respectful and professional",
-              "No spam or self-promotion",
-              "Share reliable legal information only"
-            ]
-          }
-        ];
-
-        // Add each community to Firebase with proper IDs
-        for (let i = 0; i < defaultCommunities.length; i++) {
-          const community = defaultCommunities[i];
-          const communityRef = ref(database, `communities/community_${i + 1}`);
-          await set(communityRef, community);
-        }
-        
-        console.log('Default communities initialized');
-      }
-    } catch (error) {
-      console.error('Error initializing communities:', error);
-      setError('Failed to load communities');
-    }
-  };
-
-  // Load communities from Firebase
-  const loadCommunities = () => {
-    try {
-      const communitiesRef = ref(database, 'communities');
-      const unsubscribe = onValue(communitiesRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const communitiesArray = Object.entries(data).map(([id, community]) => ({
-            id,
-            ...community,
-            members: community.members || 0
-          }));
-          setCommunities(communitiesArray);
-          setFilteredCommunities(communitiesArray);
-        } else {
-          setCommunities([]);
-          setFilteredCommunities([]);
-        }
-      }, (error) => {
-        console.error('Error loading communities:', error);
-        setError('Failed to load communities');
-      });
-
-      return unsubscribe;
-    } catch (error) {
-      console.error('Error setting up communities listener:', error);
-      setError('Failed to initialize communities');
-    }
-  };
-
-  // Load user memberships
-  const loadUserMemberships = (userId) => {
-    try {
-      const membershipsRef = ref(database, `userMemberships/${userId}`);
-      const unsubscribe = onValue(membershipsRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const membershipSet = new Set(Object.keys(data));
-          setUserMemberships(membershipSet);
-        } else {
-          setUserMemberships(new Set());
-        }
-      });
-
-      return unsubscribe;
-    } catch (error) {
-      console.error('Error loading user memberships:', error);
-    }
-  };
-
-  // Join/Leave community
-  const toggleCommunityMembership = async (communityId, isCurrentlyMember) => {
-    if (!user) {
-      setError('Please log in to join communities');
-      return;
-    }
-
-    try {
-      const membershipRef = ref(database, `userMemberships/${user.uid}/${communityId}`);
-      const communityRef = ref(database, `communities/${communityId}`);
-      const communityMembersRef = ref(database, `communityMembers/${communityId}/${user.uid}`);
-
-      if (isCurrentlyMember) {
-        // Leave community
-        await remove(membershipRef);
-        await remove(communityMembersRef);
-        
-        // Decrease member count
-        const communitySnapshot = await get(communityRef);
-        if (communitySnapshot.exists()) {
-          const currentMembers = communitySnapshot.val().members || 0;
-          await update(communityRef, { 
-            members: Math.max(0, currentMembers - 1) 
-          });
-        }
-      } else {
-        // Join community
-        await set(membershipRef, {
-          joinedAt: serverTimestamp(),
-          communityName: communities.find(c => c.id === communityId)?.name || 'Unknown'
-        });
-        
-        await set(communityMembersRef, {
-          joinedAt: serverTimestamp(),
-          userId: user.uid,
-          userEmail: user.email,
-          userName: user.displayName || user.email
-        });
-
-        // Increase member count
-        const communitySnapshot = await get(communityRef);
-        if (communitySnapshot.exists()) {
-          const currentMembers = communitySnapshot.val().members || 0;
-          await update(communityRef, { 
-            members: currentMembers + 1 
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling membership:', error);
-      setError('Failed to update membership');
-    }
-  };
-
-  // Create new community
-  const createCommunity = async (communityData) => {
-    if (!user) {
-      setError('Please log in to create communities');
-      return;
-    }
-
-    try {
-      const communitiesRef = ref(database, 'communities');
-      
-      // Generate a unique ID for the community
-      const communityId = `community_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const communityRef = ref(database, `communities/${communityId}`);
-      
-      const newCommunityData = {
-        ...communityData,
-        createdBy: user.uid,
-        createdByName: user.displayName || user.email,
-        createdAt: serverTimestamp(),
-        members: 1, // Creator is first member
-        isActive: true,
-        rules: communityData.rules || [
-          "Be respectful and professional",
-          "No spam or self-promotion", 
-          "Share reliable legal information only"
-        ]
-      };
-
-      await set(communityRef, newCommunityData);
-      
-      // Auto-join creator to the community
-      await toggleCommunityMembership(communityId, false);
-      
-      setCreateModalOpen(false);
-    } catch (error) {
-      console.error('Error creating community:', error);
-      setError('Failed to create community');
-    }
-  };
-
-  // Filter and sort communities
+  // Auth listener
   useEffect(() => {
-    let filtered = communities;
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(community =>
-        community.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        community.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        community.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(community => community.category === selectedCategory);
-    }
-
-    // Sort communities
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'members':
-          return (b.members || 0) - (a.members || 0);
-        case 'newest':
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case 'activity':
-          return (b.lastActivity || 0) - (a.lastActivity || 0);
-        case 'alphabetical':
-          return a.name.localeCompare(b.name);
-        default:
-          return 0;
-      }
-    });
-
-    setFilteredCommunities(filtered);
-  }, [communities, searchQuery, selectedCategory, sortBy]);
-
-  // Auth and data loading
-  useEffect(() => {
-    setIsMounted(true);
-    
-    const unsubscribeAuth = onAuthStateChanged(auth, async (u) => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (u) {
-        loadUserMemberships(u.uid);
-      } else {
-        setUserMemberships(new Set());
+      if (!u) {
+        router.push('/login');
       }
       setLoading(false);
     });
 
-    return () => unsubscribeAuth();
-  }, []);
+    return () => unsubscribe();
+  }, [router]);
 
-  // Load communities when component mounts
-  useEffect(() => {
-    if (isMounted && database) {
-      initializeDefaultCommunities();
-      const unsubscribe = loadCommunities();
-      return () => unsubscribe && unsubscribe();
-    }
-  }, [isMounted]);
-
-  const VideoCard = ({ video }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden min-w-[320px] hover:shadow-xl transition-shadow">
-      <div className="relative">
-        <iframe
-          width="100%"
-          height="200"
-          src={video.url}
-          title={video.title}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="rounded-t-lg"
-        />
-        <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-          {video.duration}
-        </div>
-      </div>
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
-          {video.title}
-        </h3>
-        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-          <span>{video.views}</span>
-          <div className="flex space-x-2">
-            <button className="hover:text-red-500 transition-colors">
-              <Heart className="w-4 h-4" />
-            </button>
-            <button className="hover:text-blue-500 transition-colors">
-              <Share2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Community Creation Modal
-  const CreateCommunityModal = () => {
-    const [formData, setFormData] = useState({
-      name: '',
-      category: 'Contract',
-      description: '',
-      avatar: '/icons/default-community.png',
-      tags: '',
-      isPrivate: false
+  // Load community members
+  const loadCommunityMembers = useCallback(() => {
+    const membersRef = ref(database, `communityMembers/${id}`);
+    const unsubscribe = onValue(membersRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const membersList = Object.values(data);
+        setCommunityMembers(membersList);
+      } else {
+        setCommunityMembers([]);
+      }
     });
 
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (formData.name.trim() && formData.description.trim()) {
-        const communityData = {
-          ...formData,
-          tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-        };
-        createCommunity(communityData);
-      }
+    return unsubscribe;
+  }, [id]);
+
+  // Initialize welcome message for new communities
+  const initializeWelcomeMessage = useCallback(async () => {
+    if (!community || !user) return;
+
+    const welcomeMessage = {
+      text: `Welcome to ${community.name}! This is the beginning of your community chat. Feel free to introduce yourself and start meaningful discussions.`,
+      authorId: 'system',
+      authorName: 'System',
+      authorAvatar: '/icons/bot-avatar.png',
+      timestamp: new Date().toISOString(),
+      type: 'system'
     };
 
-    if (!createModalOpen) return null;
+    try {
+      const messagesRef = ref(database, `communityMessages/${id}`);
+      await push(messagesRef, welcomeMessage);
+    } catch (error) {
+      console.error('Error creating welcome message:', error);
+    }
+  }, [community, user, id]);
+
+  // Load community data from Firebase or URL params
+  const loadCommunityData = useCallback(async () => {
+    try {
+      // First try to get from Firebase
+      const communityRef = ref(database, `communities/${id}`);
+      const snapshot = await get(communityRef);
+      
+      if (snapshot.exists()) {
+        setCommunity({ id, ...snapshot.val() });
+      } else {
+        // Fallback to URL params
+        const name = searchParams.get("name");
+        const avatar = searchParams.get("avatar");
+        const members = searchParams.get("members");
+        
+        if (name) {
+          setCommunity({ 
+            id, 
+            name, 
+            avatar: avatar || '/icons/default-community.png', 
+            members: parseInt(members) || 0,
+            description: searchParams.get("description") || ""
+          });
+        } else {
+          setError('Community not found');
+        }
+      }
+
+      // Load community members
+      loadCommunityMembers();
+    } catch (error) {
+      console.error('Error loading community:', error);
+      setError('Failed to load community');
+    }
+  }, [id, searchParams, loadCommunityMembers]);
+
+  // Load messages with real-time listener
+  const loadMessages = useCallback(() => {
+    const messagesRef = ref(database, `communityMessages/${id}`);
+    const messagesQuery = query(messagesRef, orderByChild('timestamp'), limitToLast(100));
+    
+    const unsubscribe = onValue(messagesQuery, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const messagesList = Object.entries(data).map(([messageId, message]) => ({
+          id: messageId,
+          ...message
+        })).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        setMessages(messagesList);
+      } else {
+        // Initialize with welcome message if no messages exist
+        initializeWelcomeMessage();
+      }
+    }, (error) => {
+      console.error('Error loading messages:', error);
+      setError('Failed to load messages');
+    });
+
+    messagesListenerRef.current = unsubscribe;
+    return unsubscribe;
+  }, [id, initializeWelcomeMessage]);
+
+  // Load community data
+  useEffect(() => {
+    if (mounted && id) {
+      loadCommunityData();
+    }
+  }, [mounted, id, loadCommunityData]);
+
+  // Load messages when user and community are ready
+  useEffect(() => {
+    if (user && community && mounted) {
+      const unsubscribe = loadMessages();
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    }
+  }, [user, community, mounted, loadMessages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Update user's online status
+  useEffect(() => {
+    if (user && community) {
+      const userStatusRef = ref(database, `communityOnlineUsers/${id}/${user.uid}`);
+      
+      // Set user as online
+      set(userStatusRef, {
+        name: user.displayName || user.email,
+        avatar: user.photoURL || '/default-avatar.png',
+        lastSeen: serverTimestamp()
+      });
+
+      // Set user as offline when they leave
+      const handleBeforeUnload = () => {
+        set(userStatusRef, null);
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        set(userStatusRef, null);
+      };
+    }
+  }, [user, community, id]);
+
+  // Send message
+  const handleSend = async () => {
+    if (!input.trim() || !user || !community) return;
+
+    const newMessage = {
+      text: input.trim(),
+      authorId: user.uid,
+      authorName: user.displayName || user.email.split('@')[0],
+      authorAvatar: user.photoURL || '/default-avatar.png',
+      timestamp: new Date().toISOString(),
+      type: 'text'
+    };
+
+    try {
+      const messagesRef = ref(database, `communityMessages/${id}`);
+      await push(messagesRef, newMessage);
+      
+      // Update community last activity
+      const communityRef = ref(database, `communities/${id}`);
+      await update(communityRef, {
+        lastActivity: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      setInput("");
+      setIsTyping(false);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setError('Failed to send message');
+    }
+  };
+
+  // Handle typing indicator
+  const handleTyping = (value) => {
+    setInput(value);
+    
+    if (!isTyping && user) {
+      setIsTyping(true);
+      const typingRef = ref(database, `communityTyping/${id}/${user.uid}`);
+      set(typingRef, {
+        name: user.displayName || user.email.split('@')[0],
+        timestamp: serverTimestamp()
+      });
+    }
+
+    // Clear typing indicator after 3 seconds
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      if (user) {
+        const typingRef = ref(database, `communityTyping/${id}/${user.uid}`);
+        set(typingRef, null);
+      }
+    }, 3000);
+  };
+
+  // Listen for typing indicators
+  useEffect(() => {
+    if (user && community) {
+      const typingRef = ref(database, `communityTyping/${id}`);
+      const unsubscribe = onValue(typingRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const typingUsersList = Object.entries(data)
+            .filter(([uid, _]) => uid !== user.uid)
+            .map(([_, userData]) => userData.name);
+          setTypingUsers(new Set(typingUsersList));
+        } else {
+          setTypingUsers(new Set());
+        }
+      });
+
+      return () => unsubscribe();
+    }
+  }, [user, community, id]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Generate consistent colors for users
+  const getUserColor = (authorId, authorName) => {
+    if (authorId === 'system') {
+      return { bg: "bg-gray-100 dark:bg-gray-700", border: "border-gray-300 dark:border-gray-600", text: "text-gray-800 dark:text-gray-200" };
+    }
+    
+    if (user && authorId === user.uid) {
+      return { bg: "bg-blue-500", border: "border-blue-600", text: "text-white" };
+    }
+
+    const colors = [
+      { bg: "bg-red-100 dark:bg-red-900", border: "border-red-300 dark:border-red-700", text: "text-red-800 dark:text-red-200" },
+      { bg: "bg-green-100 dark:bg-green-900", border: "border-green-300 dark:border-green-700", text: "text-green-800 dark:text-green-200" },
+      { bg: "bg-yellow-100 dark:bg-yellow-900", border: "border-yellow-300 dark:border-yellow-700", text: "text-yellow-800 dark:text-yellow-200" },
+      { bg: "bg-purple-100 dark:bg-purple-900", border: "border-purple-300 dark:border-purple-700", text: "text-purple-800 dark:text-purple-200" },
+      { bg: "bg-pink-100 dark:bg-pink-900", border: "border-pink-300 dark:border-pink-700", text: "text-pink-800 dark:text-pink-200" },
+      { bg: "bg-indigo-100 dark:bg-indigo-900", border: "border-indigo-300 dark:border-indigo-700", text: "text-indigo-800 dark:text-indigo-200" },
+    ];
+
+    const hash = authorName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    
+    return date.toLocaleDateString() === now.toLocaleDateString() 
+      ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
+  // Members List Modal
+  const MembersListModal = () => {
+    if (!showMembersList) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-            Create New Community
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Community Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Category
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                {categories.filter(cat => cat !== 'All').map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Tags (comma separated)
-              </label>
-              <input
-                type="text"
-                value={formData.tags}
-                onChange={(e) => setFormData({...formData, tags: e.target.value})}
-                placeholder="contracts, legal, advice"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isPrivate"
-                checked={formData.isPrivate}
-                onChange={(e) => setFormData({...formData, isPrivate: e.target.checked})}
-                className="mr-2"
-              />
-              <label htmlFor="isPrivate" className="text-sm text-gray-700 dark:text-gray-300">
-                Private Community (invitation only)
-              </label>
-            </div>
-
-            <div className="flex space-x-3 pt-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full max-h-96 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Community Members ({communityMembers.length})
+              </h3>
               <button
-                type="button"
-                onClick={() => setCreateModalOpen(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                onClick={() => setShowMembersList(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-2 bg-[#1E8DD0] hover:bg-blue-600 text-white rounded-lg"
-              >
-                Create Community
+                ×
               </button>
             </div>
-          </form>
+          </div>
+          <div className="overflow-y-auto max-h-80">
+            {communityMembers.map((member, index) => (
+              <div key={index} className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <Image
+                  src={member.userAvatar || '/default-avatar.png'}
+                  alt={member.userName}
+                  className="w-10 h-10 rounded-full"
+                  width={40}
+                  height={40}
+                />
+                <div className="ml-3 flex-1">
+                  <p className="font-medium text-gray-900 dark:text-white">{member.userName}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Joined {formatTime(member.joinedAt)}
+                  </p>
+                </div>
+                {member.role === 'admin' && (
+                  <Shield className="w-4 h-4 text-yellow-500" />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   };
 
-  if (!isMounted) return null;
+  // Error Toast
+  const ErrorToast = () => {
+    if (!error) return null;
 
-  if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}>
+      <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+        <div className="flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-2 text-white hover:text-gray-200">
+            ×
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Render loading state
+  if (!mounted || loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className={`mt-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Loading communities...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading chat...</p>
         </div>
       </div>
     );
   }
 
+  if (error && !community) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!community) return <p className="p-4">Community not found!</p>;
+
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}>
-      <NoSSR />
-      <Navbar />
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <ErrorToast />
+      <MembersListModal />
 
-      {/* Error Toast */}
-      {error && (
-        <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
-          <div className="flex items-center justify-between">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="ml-2 text-white hover:text-gray-200">
-              ×
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Background decorations */}
-      <div className="fixed bottom-0 left-0 w-400 h-400 z-[0]">
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#daeef9" d="M49.3,0.7C49.3,21.2,24.7,42.3,-2.2,42.3C-29,42.3,-58,21.2,-58,0.7C-58,-19.8,-29,-39.7,-2.2,-39.7C24.7,-39.7,49.3,-19.8,49.3,0.7Z" transform="translate(100 100)" />
-        </svg>
-      </div>
-      
-      <div className="fixed bottom-0 left-0 w-200 h-200 z-[0]">
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#f1f3f4" d="M49.3,0.7C49.3,21.2,24.7,42.3,-2.2,42.3C-29,42.3,-58,21.2,-58,0.7C-58,-19.8,-29,-39.7,-2.2,-39.7C24.7,-39.7,49.3,-19.8,49.3,0.7Z" transform="translate(100 100)" />
-        </svg>
-      </div>
-
-      <div className="fixed top-10 left-20 w-400 h-400 z-[0]">
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#f1f3f4" d="M49.3,0.7C49.3,21.2,24.7,42.3,-2.2,42.3C-29,42.3,-58,21.2,-58,0.7C-58,-19.8,-29,-39.7,-2.2,-39.7C24.7,-39.7,49.3,-19.8,49.3,0.7Z" transform="translate(100 100)" />
-        </svg>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="relative max-w-xl mx-auto">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search communities, topics, or legal advice..."
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1E8DD0]"
-            />
-          </div>
-        </div>
-
-        {/* Featured Videos */}
-        <div className="mb-12 z-50 relative">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-              <Video className="w-6 h-6 mr-2 text-[#1E8DD0]" />
-              Featured Legal Content
-            </h2>
-            <div className="flex space-x-2">
-              <button className="p-2 rounded-full bg-white dark:bg-gray-800 shadow hover:shadow-lg transition-shadow">
-                <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button className="p-2 rounded-full bg-white dark:bg-gray-800 shadow hover:shadow-lg transition-shadow">
-                <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex space-x-6 overflow-x-auto pb-4 scrollbar-hide">
-            {videos.map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </div>
-        </div>
-
-        {/* Communities Section */}
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2 flex items-center">
-                <Users className="w-8 h-8 mr-3 text-[#1E8DD0]" />
-                Join Communities
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Connect with others, get advice, and share knowledge • {filteredCommunities.length} communities
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              {user && (
-                <button 
-                  onClick={() => setCreateModalOpen(true)}
-                  className="px-4 py-2 bg-[#1E8DD0] hover:bg-blue-600 text-white rounded-lg flex items-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Create</span>
-                </button>
-              )}
-              
-              <div className="relative">
-                <button 
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-[#1E8DD0] dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-2"
-                >
-                  <Filter className="w-4 h-4" />
-                  <span>Filter</span>
-                </button>
-                
-                {showFilters && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-4 z-20">
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Category
-                      </label>
-                      <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        {categories.map(category => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Sort by
-                      </label>
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="members">Most Members</option>
-                        <option value="newest">Newest</option>
-                        <option value="activity">Most Active</option>
-                        <option value="alphabetical">Alphabetical</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Category Pills */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {categories.map(category => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCategory === category
-                    ? 'bg-[#1E8DD0] text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                {category}
-                {category !== 'All' && (
-                  <span className="ml-1 text-xs opacity-75">
-                    ({communities.filter(c => c.category === category).length})
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center">
+          <button
+            onClick={() => router.back()}
+            className="mr-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
           
-          {/* Communities Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 z-50 relative">
-            {filteredCommunities.map((community) => (
-              <CommunityCardWithFirebase 
-                key={community.id} 
-                community={community}
-                isJoined={userMemberships.has(community.id)}
-                onToggleMembership={toggleCommunityMembership}
-                user={user}
-              />
-            ))}
-          </div>
-
-          {/* Empty State */}
-          {filteredCommunities.length === 0 && (
-            <div className="text-center py-12">
-              <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                No communities found
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                {searchQuery ? 'Try adjusting your search or filters' : 'Be the first to create a community!'}
-              </p>
-              {user && !searchQuery && (
-                <button
-                  onClick={() => setCreateModalOpen(true)}
-                  className="bg-[#1E8DD0] hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                >
-                  Create Community
-                </button>
+          <Image 
+            src={community.avatar || '/icons/default-community.png'} 
+            alt={community.name} 
+            className="w-12 h-12 rounded-full object-cover"
+            width={48}
+            height={48}
+            onError={(e) => {
+              e.target.src = '/icons/default-community.png';
+            }}
+          />
+          
+          <div className="ml-3">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              {community.name}
+            </h2>
+            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>{communityMembers.length} members</span>
+              {onlineUsers.size > 0 && (
+                <span>• {onlineUsers.size} online</span>
               )}
             </div>
-          )}
-
-          {/* Load More Button */}
-          {filteredCommunities.length > 0 && filteredCommunities.length >= 12 && (
-            <div className="text-center mt-8">
-              <button className="bg-[#1E8DD0] hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors z-50 relative">
-                Load More Communities
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Create Community Modal */}
-      <CreateCommunityModal />
-
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .line-clamp-3 {
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// Enhanced CommunityCard with Firebase integration
-const CommunityCardWithFirebase = ({ community, isJoined, onToggleMembership, user }) => {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
-  const handleJoin = async () => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await onToggleMembership(community.id, isJoined);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCardClick = () => {
-    const query = new URLSearchParams({
-      name: community.name,
-      avatar: community.avatar,
-      category: community.category,
-      description: community.description,
-      members: community.members,
-    }).toString();
-
-    router.push(`/community/${community.id}?${query}`);
-  };
-
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col justify-between p-6 group cursor-pointer">
-      <div onClick={handleCardClick}>
-        {/* Community Avatar */}
-        <div className="flex justify-center items-center mb-4">
-          <div className="relative">
-            <Image
-              src={community.avatar}
-              alt={community.name}
-              className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 dark:border-gray-700 group-hover:scale-105 transition-transform"
-              onError={(e) => {
-                e.target.src = '/icons/default-community.png';
-              }}
-            />
-            {community.isActive && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-            )}
           </div>
         </div>
 
-        {/* Category Badge */}
-        <div className="flex justify-center mb-3">
-          <span className="text-xs bg-blue-100 dark:bg-[#a7d6f2] text-[#145c86] dark:text-blue-800 px-3 py-1 rounded-full font-medium">
-            {community.category}
-          </span>
-        </div>
-
-        {/* Community Info */}
-        <div className="flex-1 text-center mb-4">
-          <h3 className="font-bold text-lg text-[#1E8DD0] dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-            {community.name}
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3 leading-relaxed">
-            {community.description}
-          </p>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowMembersList(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          >
+            <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
+          
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+            <Search className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
+          
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+            <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
         </div>
       </div>
 
-      {/* Bottom Section */}
-      <div className="space-y-3">
-        {/* Member Count and Tags */}
-        <div className="flex items-center justify-center space-x-3 text-sm text-gray-500 dark:text-gray-400">
-          <div className="flex items-center space-x-1">
-            <Users className="w-4 h-4" />
-            <span>{community.members?.toLocaleString() || 0} members</span>
-          </div>
-          {community.lastActivity && (
-            <div className="flex items-center space-x-1">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-xs">Active</span>
+      {/* Messages - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        {messages.length === 0 && (
+          <div className="text-center py-12">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Welcome to {community.name}!
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                This is the beginning of your community chat. Start the conversation!
+              </p>
             </div>
-          )}
-        </div>
-
-        {/* Tags */}
-        {community.tags && community.tags.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1">
-            {community.tags.slice(0, 3).map((tag, index) => (
-              <span
-                key={index}
-                className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded"
-              >
-                #{tag}
-              </span>
-            ))}
           </div>
         )}
 
-        {/* Join Button */}
-        <div className="pt-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleJoin();
-            }}
-            disabled={loading}
-            className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              isJoined
-                ? "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800"
-                : "bg-[#1E8DD0] hover:bg-[#145c86] text-white transform hover:scale-105"
-            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+        {messages.map((msg) => {
+          const style = getUserColor(msg.authorId, msg.authorName);
+          const isOwnMessage = user && msg.authorId === user.uid;
+          
+          return (
+            <div
+              key={msg.id}
+              className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+            >
+              <div className="flex items-start space-x-2 max-w-xl">
+                {!isOwnMessage && (
+                  <Image
+                    src={msg.authorAvatar || '/default-avatar.png'}
+                    alt={msg.authorName}
+                    className="w-8 h-8 rounded-full flex-shrink-0"
+                    width={32}
+                    height={32}
+                    onError={(e) => {
+                      e.target.src = '/default-avatar.png';
+                    }}
+                  />
+                )}
+                
+                <div
+                  className={`p-3 rounded-2xl border ${style.bg} ${style.border} ${style.text} ${
+                    isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'
+                  }`}
+                >
+                  {!isOwnMessage && (
+                    <p className="text-xs font-semibold mb-1 opacity-80">
+                      {msg.authorName}
+                    </p>
+                  )}
+                  <p className="text-sm leading-relaxed break-words">{msg.text}</p>
+                  <p className="text-xs opacity-60 mt-1 text-right">
+                    {formatTime(msg.timestamp)}
+                  </p>
+                </div>
               </div>
-            ) : (
-              isJoined ? "Joined ✓" : "Join Community"
-            )}
-          </button>
-        </div>
+            </div>
+          );
+        })}
 
-        {/* Community Stats */}
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-1">
-          <span>
-            Created {community.createdAt ? new Date(community.createdAt).toLocaleDateString() : 'Recently'}
-          </span>
-          {community.isPrivate && (
-            <span className="flex items-center">
-              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-              </svg>
-              Private
-            </span>
-          )}
+        {/* Typing Indicators */}
+        {typingUsers.size > 0 && (
+          <div className="flex justify-start">
+            <div className="flex items-center space-x-2 bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-full">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                {Array.from(typingUsers).join(', ')} typing...
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef}></div>
+      </div>
+
+      {/* Input - Fixed bottom */}
+      <div className="border-t border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div className="flex items-center space-x-3">
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+            <Paperclip className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+          
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder={`Message ${community.name}...`}
+              value={input}
+              onChange={(e) => handleTyping(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              disabled={!user}
+            />
+          </div>
+
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+            <Smile className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+          
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || !user}
+            className={`p-3 rounded-full transition-colors ${
+              input.trim() && user
+                ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Send className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>
   );
-};
-
-export default CommunitiesPage;
+}
