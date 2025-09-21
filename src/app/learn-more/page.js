@@ -1,5 +1,5 @@
 "use client";
-
+import Image from 'next/image';
 import React from "react";
 import { FileText, Lock, Lightbulb, Cpu } from "lucide-react";
 import Navbar from "@/components/navbar";
@@ -44,7 +44,7 @@ export default function LearnMorePage() {
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center lg:items-start gap-12 px-6 py-16">
         {/* Left: Illustration */}
         <div className="flex-1 flex justify-center lg:justify-start">
-          <img
+          <Image
             src="/icons/learn-more-pic.jpg"
             alt="Illustration"
             className="w-full max-w-lg"

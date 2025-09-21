@@ -861,7 +861,7 @@ export default function ChatBot() {
             </h1>
             {temporaryMode && (
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Temporary mode - messages won't be saved
+                Temporary mode - messages won&apos;t be saved
               </p>
             )}
           </div>

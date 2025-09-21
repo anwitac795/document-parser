@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { 
   User, 
@@ -367,7 +367,7 @@ export default function Dashboard() {
                     darkMode ? 'border-[#4F7C82]' : 'border-gray-200'
                   } ${imagePreview ? '' : 'bg-gray-100 dark:bg-[#4F7C82]/20'}`}>
                     {imagePreview ? (
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Profile"
                         className="w-full h-full object-cover"

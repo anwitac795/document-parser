@@ -878,7 +878,7 @@ const CommunityCardWithFirebase = ({ community, isJoined, onToggleMembership, us
         {/* Community Avatar */}
         <div className="flex justify-center items-center mb-4">
           <div className="relative">
-            <img
+            <Image
               src={community.avatar}
               alt={community.name}
               className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 dark:border-gray-700 group-hover:scale-105 transition-transform"

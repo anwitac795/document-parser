@@ -1,5 +1,5 @@
 "use client";
-
+import Image from 'next/image';
 import { useRouter } from "next/navigation";
 import { Users, TrendingUp, Lock, Calendar, Hash } from "lucide-react";
 import { useState } from "react";
@@ -87,7 +87,7 @@ const CommunityCard = ({
       {/* Community Avatar & Status */}
       <div className="flex justify-center items-center mb-4">
         <div className="relative">
-          <img
+          <Image
             src={community.avatar || '/icons/default-community.png'}
             alt={community.name}
             className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 dark:border-gray-700 group-hover:scale-105 transition-transform shadow-md"

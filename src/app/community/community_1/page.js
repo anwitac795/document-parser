@@ -1,5 +1,5 @@
 "use client";
-
+import Image from 'next/image';
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Send, 
@@ -368,7 +368,7 @@ export default function CommunityChatPage() {
           <div className="overflow-y-auto max-h-80">
             {communityMembers.map((member, index) => (
               <div key={index} className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <img
+                <Image
                   src={member.userAvatar || '/default-avatar.png'}
                   alt={member.userName}
                   className="w-10 h-10 rounded-full"
@@ -451,7 +451,7 @@ export default function CommunityChatPage() {
             <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
           
-          <img 
+          <Image 
             src={community.avatar || '/icons/default-community.png'} 
             alt={community.name} 
             className="w-12 h-12 rounded-full object-cover"
@@ -517,7 +517,7 @@ export default function CommunityChatPage() {
             >
               <div className="flex items-start space-x-2 max-w-xl">
                 {!isOwnMessage && (
-                  <img
+                  <Image
                     src={msg.authorAvatar || '/default-avatar.png'}
                     alt={msg.authorName}
                     className="w-8 h-8 rounded-full flex-shrink-0"
